@@ -19,8 +19,8 @@ const navItems = [
   { path: "/projects", label: "Projects", icon: FolderOpen },
   { path: "/upcoming", label: "Upcoming", icon: TrendingUp },
   { path: "/ongoing", label: "Ongoing", icon: Wrench },
-  { path: "/servers", label: "Servers", icon: Server, badge: 2 },
-  { path: "/domains", label: "Domains", icon: Globe, badge: 2 },
+  { path: "/servers", label: "Servers", icon: Server },
+  { path: "/domains", label: "Domains", icon: Globe },
   { path: "/team", label: "Team", icon: Users },
 ];
 
@@ -35,9 +35,9 @@ export default function Sidebar() {
       className="relative h-screen bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 flex flex-col shrink-0 overflow-hidden"
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 h-16 px-4 border-b border-slate-200/80 dark:border-slate-800 shrink-0">
-        <div className="flex items-center gap-3">
-          <img src={logo} alt="Nirvi Track" className="w-13 h-13object-contain shrink-0" />
+      <div className={`flex items-center h-16 border-b border-slate-200/80 dark:border-slate-800 shrink-0 ${collapsed ? "px-2 justify-between" : "px-4 justify-between"}`}>
+        <div className="flex items-center gap-3 overflow-hidden">
+          <img src={logo} alt="Nirvi Track" className={`object-contain shrink-0 ${collapsed ? "w-13 h-13" : "w-13 h-13"}`} />
           {!collapsed && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -45,7 +45,7 @@ export default function Sidebar() {
               transition={{ delay: 0.1 }}
               className="flex flex-col"
             >
-              <span className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
+              <span className="text-xl font-bold text-slate-800 dark:text-slate-100 leading-tight">
                 Nirvi Track
               </span>
               <span className="text-[11px] text-slate-400 dark:text-slate-500 leading-tight">
@@ -54,6 +54,13 @@ export default function Sidebar() {
             </motion.div>
           )}
         </div>
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="shrink-0 flex items-center justify-center size-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shadow-sm cursor-pointer transition-colors"
+        >
+          {collapsed ? <ChevronRight className="size-3" /> : <ChevronLeft className="size-3" />}
+        </button>
       </div>
 
       {/* Navigation */}
@@ -119,14 +126,7 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* Collapse toggle */}
-      <button
-        type="button"
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 flex items-center justify-center size-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shadow-sm cursor-pointer transition-colors"
-      >
-        {collapsed ? <ChevronRight className="size-3" /> : <ChevronLeft className="size-3" />}
-      </button>
+
     </motion.aside>
   );
 }

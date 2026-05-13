@@ -33,7 +33,7 @@ export default function Login() {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className="relative z-10 w-full max-w-[360px] mx-4"
       >
-        <Card className="rounded-[28px] p-8 flex flex-col items-center bg-white/80 border-white/60 backdrop-blur-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.8)] border gap-0">
+        <Card className="rounded-[28px] p-8 flex flex-col items-center bg-white/80 backdrop-blur-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15),inset_0_1px_1px_rgba(255,255,255,0.8)] ring-0 border-0 gap-0">
 
           {/*Logo*/}
 
@@ -111,7 +111,7 @@ export default function Login() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                     >
                       {showPassword ? (
                         <EyeOff className="w-4 h-4" />

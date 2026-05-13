@@ -46,9 +46,6 @@ export default function Navbar() {
           className="relative flex items-center justify-center size-9 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
         >
           <Bell className="size-5" />
-          <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[11px] font-semibold text-white bg-red-500 rounded-full border-2 border-white dark:border-slate-900">
-            2
-          </span>
         </button>
 
         {/* User dropdown */}
