@@ -119,7 +119,7 @@ export default function Sidebar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="text-[11px] text-slate-400 dark:text-slate-500"
+            className="text-[11px] text-center text-slate-400 dark:text-slate-500"
           >
             &copy; 2026 Nirvi Track
           </motion.p>
