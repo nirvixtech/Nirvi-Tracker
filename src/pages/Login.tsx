@@ -34,7 +34,7 @@ export default function Login() {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className="relative z-10 w-full max-w-[360px] mx-4"
       >
-        <Card className="rounded-[28px] p-8 flex flex-col items-center bg-white/80 border-white/60 backdrop-blur-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.8)] border gap-0">
+        <Card className="rounded-[28px] p-8 flex flex-col items-center bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.12)] ring-0 gap-0">
 
           {/*Logo*/}
 
