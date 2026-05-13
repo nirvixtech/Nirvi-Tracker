@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Toaster } from '@/components/ui/sonner'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 
@@ -9,6 +10,7 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
+      <Toaster position="top-right" richColors />
     </BrowserRouter>
   )
 }

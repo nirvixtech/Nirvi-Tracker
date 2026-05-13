@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
+import { toast } from 'sonner'
 import logo from '../assets/logo.png'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -13,16 +14,15 @@ export default function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState('')
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
 
     if (username === 'nirvix' && password === 'admin123') {
+      toast.success('Login successful! Redirecting...')
       navigate('/dashboard')
     } else {
-      setError('Invalid username or password')
+      toast.error('Invalid username or password')
     }
   }
 
@@ -123,17 +123,6 @@ export default function Login() {
                   </div>
                 </div>
               </div>
-
-              {/* Error message */}
-              {error && (
-                <motion.p
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-xs text-red-500 mb-3 text-center"
-                >
-                  {error}
-                </motion.p>
-              )}
 
               {/* Submit button */}
               <Button
