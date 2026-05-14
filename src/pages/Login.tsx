@@ -52,7 +52,7 @@ export default function Login() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.5 }}
             >
-              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-400 dark:to-blue-600 bg-clip-text text-transparent">
+              <CardTitle className="text-3xl calistoga-regular bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-400 dark:to-blue-600 bg-clip-text text-transparent">
                 Nirvi Track
               </CardTitle>
             </motion.div>
@@ -61,7 +61,7 @@ export default function Login() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25, duration: 0.5 }}
             >
-              <CardDescription className="text-sm text-slate-500">
+              <CardDescription className="text-sm courgette-regular text-slate-500">
                 Internal Project Tracker Platform
               </CardDescription>
             </motion.div>
@@ -79,7 +79,7 @@ export default function Login() {
               <div className="flex flex-col gap-3 mb-4">
                 {/* Username */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="username" className="text-xs text-slate-500">
+                  <Label htmlFor="username" className="text-xs trykker-regular text-slate-500">
                     Username
                   </Label>
                   <Input
@@ -95,7 +95,7 @@ export default function Login() {
 
                 {/* Password */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="password" className="text-xs text-slate-500">
+                  <Label htmlFor="password" className="text-xs trykker-regular text-slate-500">
                     Password
                   </Label>
                   <div className="relative">
@@ -128,7 +128,7 @@ export default function Login() {
                 type="submit"
                 className="w-full h-11 rounded-xl text-sm font-medium text-white bg-[#0367B5] hover:bg-[#025a9e] active:scale-[0.98] transition-all cursor-pointer border-0"
               >
-                Log in
+                <span className="trykker-regular">Log in</span>
               </Button>
             </motion.form>
 
