@@ -9,12 +9,19 @@ import {
   Server,
   Globe,
   Users,
-  ChevronLeft,
-  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import logo from "../../assets/logo.png";
 
-const navItems = [
+interface NavItem {
+  path: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string | number;
+}
+
+const navItems: NavItem[] = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { path: "/projects", label: "Projects", icon: FolderOpen },
   { path: "/upcoming", label: "Upcoming", icon: TrendingUp },
@@ -35,7 +42,7 @@ export default function Sidebar() {
       className="relative h-screen bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 flex flex-col shrink-0 overflow-hidden"
     >
       {/* Logo */}
-      <div className={`flex items-center h-16 border-b border-slate-200/80 dark:border-slate-800 shrink-0 ${collapsed ? "px-2 justify-between" : "px-4 justify-between"}`}>
+      <div className={`flex items-center h-16 border-b border-slate-200/80 dark:border-slate-800 shrink-0 ${collapsed ? "px-2 justify-center" : "px-4"}`}>
         <div className="flex items-center gap-3 overflow-hidden">
           <img src={logo} alt="Nirvi Track" className={`object-contain shrink-0 ${collapsed ? "w-13 h-13" : "w-13 h-13"}`} />
           {!collapsed && (
@@ -45,7 +52,7 @@ export default function Sidebar() {
               transition={{ delay: 0.1 }}
               className="flex flex-col"
             >
-              <span className="text-xl font-bold text-slate-800 dark:text-slate-100 leading-tight">
+              <span className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">
                 Nirvi Track
               </span>
               <span className="text-[11px] text-slate-400 dark:text-slate-500 leading-tight">
@@ -54,13 +61,6 @@ export default function Sidebar() {
             </motion.div>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => setCollapsed(!collapsed)}
-          className="shrink-0 flex items-center justify-center size-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shadow-sm cursor-pointer transition-colors"
-        >
-          {collapsed ? <ChevronRight className="size-3" /> : <ChevronLeft className="size-3" />}
-        </button>
       </div>
 
       {/* Navigation */}
@@ -113,17 +113,27 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-slate-200/80 dark:border-slate-800 shrink-0">
+      <div className={`flex items-center border-t border-slate-200/80 dark:border-slate-800 shrink-0 ${collapsed ? "px-2 py-3 justify-center" : "px-4 py-3"}`}>
         {!collapsed && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="text-[11px] text-center text-slate-400 dark:text-slate-500"
-          >
-            &copy; 2026 Nirvi Track
-          </motion.p>
+          <>
+            <div className="w-7 shrink-0" />
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="text-[11px] text-slate-400 dark:text-slate-500 flex-1 text-center"
+            >
+              &copy; {new Date().getFullYear()} Nirvi Track
+            </motion.p>
+          </>
         )}
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          className="shrink-0 flex items-center justify-center size-7 rounded-md bg-slate-50 dark:bg-slate-800 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer transition-colors"
+        >
+          {collapsed ? <ChevronsRight className="size-4" /> : <ChevronsLeft className="size-4" />}
+        </button>
       </div>
 
 
