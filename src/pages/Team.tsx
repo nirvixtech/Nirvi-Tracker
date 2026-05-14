@@ -10,7 +10,6 @@ import {
   X,
   Users,
   Briefcase,
-  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import {

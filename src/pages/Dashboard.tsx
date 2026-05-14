@@ -111,7 +111,7 @@ function StatCard({
       whileHover={{ y: -6, scale: 1.02 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >
-      <Card className="ring-0 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 dark:hover:shadow-blue-500/10 transition-shadow duration-300 border-slate-200/60 dark:border-slate-800 cursor-default">
+      <Card className="ring-0 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 dark:hover:shadow-blue-500/10 transition-shadow duration-300 border-slate-200/60 dark:border-slate-700/90 dark:bg-slate-900/85 cursor-default">
         <CardContent className="p-5">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -168,13 +168,10 @@ export default function Dashboard() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Trend Chart */}
+        {/* Line Chart */}
         <ScrollReveal delay={0.1} className="lg:col-span-2">
-          <motion.div
-            whileHover={{ y: -4 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <Card className="ring-0 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 dark:hover:shadow-blue-500/10 transition-shadow duration-300 border-slate-200/60 dark:border-slate-800 cursor-default">
+          <motion.div>
+            <Card className="ring-0 shadow-sm border-slate-200/60 dark:border-slate-700/90 dark:bg-slate-900/85 cursor-default">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base calistoga-regular text-slate-800 dark:text-slate-100">
                   Project Activity
@@ -211,13 +208,10 @@ export default function Dashboard() {
           </motion.div>
         </ScrollReveal>
 
-        {/* Status Pie */}
+        {/* Pie chart */}
         <ScrollReveal delay={0.15}>
-          <motion.div
-            whileHover={{ y: -4 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <Card className="ring-0 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 dark:hover:shadow-blue-500/10 transition-shadow duration-300 border-slate-200/60 dark:border-slate-800 cursor-default">
+          <motion.div>
+            <Card className="ring-0 shadow-sm border-slate-200/60 dark:border-slate-700/90 dark:bg-slate-900/85 cursor-default">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base calistoga-regular text-slate-800 dark:text-slate-100">
                   Status Breakdown
@@ -268,11 +262,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Recent Projects */}
         <ScrollReveal delay={0.1} className="lg:col-span-2">
-          <motion.div
-            whileHover={{ y: -4 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <Card className="ring-0 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 dark:hover:shadow-blue-500/10 transition-shadow duration-300 border-slate-200/60 dark:border-slate-800 cursor-default">
+          <motion.div>
+            <Card className="ring-0 shadow-sm transition-shadow duration-300 border-slate-200/60 dark:border-slate-700/90 dark:bg-slate-900/85 cursor-default">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base calistoga-regular text-slate-800 dark:text-slate-100">
                   Recent Projects
@@ -285,9 +276,9 @@ export default function Dashboard() {
                 {recentProjects.map((project) => (
                   <motion.div
                     key={project.name}
-                    whileHover={{ x: 4, backgroundColor: "rgba(59, 130, 246, 0.04)" }}
+                    whileHover={{ x: 4 }}
                     transition={{ duration: 0.2 }}
-                    className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 cursor-default"
+                    className="flex items-center gap-4 p-3 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-slate-100 dark:!border-slate-600/90 dark:!bg-slate-900 dark:hover:!bg-slate-800/90 cursor-default"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-800 dark:text-slate-100 trykker-regular truncate">
@@ -298,13 +289,12 @@ export default function Dashboard() {
                       </p>
                     </div>
                     <span
-                      className={`text-xs font-medium px-2.5 py-1 rounded-full trykker-regular shrink-0 ${
-                        project.status === "Completed"
-                          ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
-                          : project.status === "Ongoing"
+                      className={`text-xs font-medium px-2.5 py-1 rounded-full trykker-regular shrink-0 ${project.status === "Completed"
+                        ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
+                        : project.status === "Ongoing"
                           ? "bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400"
                           : "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400"
-                      }`}
+                        }`}
                     >
                       {project.status}
                     </span>
@@ -326,13 +316,10 @@ export default function Dashboard() {
           </motion.div>
         </ScrollReveal>
 
-        {/* Resources */}
+        {/* Resources / Bar graph */}
         <ScrollReveal delay={0.15}>
-          <motion.div
-            whileHover={{ y: -4 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <Card className="ring-0 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 dark:hover:shadow-blue-500/10 transition-shadow duration-300 border-slate-200/60 dark:border-slate-800 cursor-default">
+          <motion.div>
+            <Card className="ring-0 shadow-sm border-slate-200/60 dark:border-slate-700/90 dark:bg-slate-900/85 cursor-default">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base calistoga-regular text-slate-800 dark:text-slate-100">
                   Resources
@@ -347,9 +334,7 @@ export default function Dashboard() {
                   return (
                     <motion.div
                       key={r.name}
-                      whileHover={{ x: 3 }}
-                      transition={{ duration: 0.2 }}
-                      className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 cursor-default"
+                      className="flex items-center justify-between p-3 rounded-xl border border-slate-200/80 bg-slate-50 dark:border-slate-700/90 dark:bg-slate-800/40 cursor-default"
                     >
                       <div className="flex items-center gap-3">
                         <div className={`flex items-center justify-center size-9 rounded-lg ${r.bg} group-hover/card:!bg-blue-600 group-hover/card:!text-white dark:group-hover/card:!bg-blue-500 transition-colors duration-300`}>
