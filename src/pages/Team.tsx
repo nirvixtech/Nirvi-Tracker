@@ -56,7 +56,7 @@ const teamMembers: TeamMember[] = [
     ],
   },
   {
-    name: "Sarah Chen",
+    name: "Sarah",
     role: "Developer",
     title: "Senior Full Stack Engineer",
     email: "sarah@nirvi.dev",
@@ -69,7 +69,7 @@ const teamMembers: TeamMember[] = [
     ],
   },
   {
-    name: "Marcus Reed",
+    name: "Ryuk",
     role: "Developer",
     title: "Backend Specialist",
     email: "marcus@nirvi.dev",
@@ -81,7 +81,7 @@ const teamMembers: TeamMember[] = [
     ],
   },
   {
-    name: "Aisha Patel",
+    name: "Alisha",
     role: "Designer",
     title: "UI/UX Lead",
     email: "aisha@nirvi.dev",
@@ -93,7 +93,7 @@ const teamMembers: TeamMember[] = [
     ],
   },
   {
-    name: "James Liu",
+    name: "Light",
     role: "Designer",
     title: "Product Designer",
     email: "james@nirvi.dev",
@@ -367,8 +367,7 @@ function InviteCard() {
                   Invite New Member
                 </CardTitle>
                 <CardDescription className="trykker-regular">
-                  Send an invitation email to join the team
-                </CardDescription>
+                  Send a welcome email to a team member                </CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -435,7 +434,7 @@ function InviteCard() {
                   <Checkbox
                     id="welcome"
                     checked={sendWelcome}
-                    onCheckedChange={(checked) => setSendWelcome(checked === true)}
+                    onChange={(event) => setSendWelcome(event.currentTarget.checked)}
                     className="rounded border-slate-300 dark:border-slate-600 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
                   />
                   <Label
