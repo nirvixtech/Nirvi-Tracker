@@ -228,7 +228,7 @@ function FilterDropdown({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className={`flex h-10 w-full items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 text-sm text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition hover:border-slate-200 hover:bg-white dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-slate-700 ${className}`}
+          className={`flex h-10 w-full items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 text-sm text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition hover:border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-slate-700 dark:hover:bg-slate-900 ${className}`}
         >
           <span className="truncate">{selectedLabel}</span>
           <ChevronDown className="size-4 text-slate-400" />
@@ -236,7 +236,7 @@ function FilterDropdown({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="rounded-xl border border-slate-200 bg-white p-1.5 shadow-[0_16px_38px_rgba(15,23,42,0.12)] dark:border-slate-700 dark:bg-slate-900"
+        className="rounded-xl border-0 ring-0 bg-white p-1.5 shadow-[0_16px_38px_rgba(15,23,42,0.12)] dark:bg-slate-900 dark:shadow-[0_18px_42px_rgba(2,6,23,0.42)]"
       >
         <DropdownMenuRadioGroup value={value} onValueChange={onValueChange}>
           {options.map((option) => (
@@ -451,10 +451,10 @@ function ProjectModal({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.98 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[30px] bg-slate-50 shadow-[0_30px_90px_rgba(15,23,42,0.28)] dark:bg-slate-950 dark:shadow-[0_34px_90px_rgba(2,6,23,0.72)]"
+          className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[30px] bg-white shadow-[0_30px_90px_rgba(15,23,42,0.28)] dark:bg-slate-900 dark:shadow-[0_34px_90px_rgba(2,6,23,0.72)]"
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="border-b border-slate-200/70 bg-white/80 px-6 pb-5 pt-6 backdrop-blur-sm dark:border-slate-800/80 dark:bg-slate-900/80">
+          <div className="border-b border-slate-200/70 bg-transparent px-6 pb-5 pt-6 dark:border-slate-800/80">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
@@ -489,9 +489,9 @@ function ProjectModal({
             variants={modalContentVariants}
             initial="hidden"
             animate="visible"
-            className="space-y-6 bg-slate-50 px-6 pb-6 dark:bg-slate-950"
+            className="space-y-6 px-6 pb-6"
           >
-            <motion.div variants={modalFieldVariants} className="rounded-[26px] bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.08)] dark:bg-slate-900">
+            <motion.div variants={modalFieldVariants} className="rounded-[26px] bg-white p-6 dark:bg-slate-900">
               <div className="mb-5">
                 <p className={sectionEyebrowClassName}>
                   Core Details
@@ -523,7 +523,7 @@ function ProjectModal({
               </div>
             </motion.div>
 
-            <motion.div variants={modalFieldVariants} className="rounded-[26px] bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.08)] dark:bg-slate-900">
+            <motion.div variants={modalFieldVariants} className="rounded-[26px] bg-white p-6 dark:bg-slate-900">
               <div className="mb-5">
                 <p className={sectionEyebrowClassName}>
                   Technical Setup
@@ -550,7 +550,7 @@ function ProjectModal({
                       <Button
                         type="button"
                         variant="outline"
-                        className="h-10 w-full cursor-pointer justify-between rounded-xl border-slate-200/80 bg-white font-normal text-slate-700 shadow-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                        className="h-10 w-full cursor-pointer justify-between rounded-xl border-slate-200/80 bg-white font-normal text-slate-700 shadow-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                       >
                         <span className="truncate">{selectedMembersLabel}</span>
                         <ChevronDown className="size-4" />
@@ -616,7 +616,7 @@ function ProjectModal({
               </div>
             </motion.div>
 
-            <motion.div variants={modalFieldVariants} className="rounded-[26px] bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.08)] dark:bg-slate-900">
+            <motion.div variants={modalFieldVariants} className="rounded-[26px] bg-white p-6 dark:bg-slate-900">
               <div className="mb-5">
                 <p className={sectionEyebrowClassName}>
                   Planning
@@ -675,7 +675,7 @@ function ProjectModal({
                     onChange={(event) => onChange("createdBy", event.target.value as ProjectRole)}
                   >
                     <option value="Admin">Admin</option>
-                    <option value="User">User</option>
+                    <option value="Manager">Manager</option>
                   </SelectField>
                 </div>
               </div>
@@ -683,12 +683,21 @@ function ProjectModal({
 
             <motion.div variants={modalFieldVariants} className="flex justify-end gap-3 pt-1">
               <motion.div whileHover={{ y: -1, scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button type="button" variant="outline" className="cursor-pointer" onClick={onClose}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="cursor-pointer border-0 ring-0 shadow-none bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                  onClick={onClose}
+                >
                   Cancel
                 </Button>
               </motion.div>
               <motion.div whileHover={{ y: -1, scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button type="button" className="cursor-pointer" onClick={onSubmit}>
+                <Button
+                  type="button"
+                  className="cursor-pointer border-0 ring-0 shadow-none bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400"
+                  onClick={onSubmit}
+                >
                   {mode === "create" ? "Create" : "Save Changes"}
                 </Button>
               </motion.div>
@@ -999,10 +1008,10 @@ export default function Projects() {
                                     </Button>
                                   </motion.div>
                                 </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="end"
-                                className="w-36 rounded-xl border-0 ring-0 bg-white p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.14)] dark:bg-slate-900 dark:shadow-[0_18px_40px_rgba(2,6,23,0.42)]"
-                              >
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="w-36 rounded-xl border-0 ring-0 bg-white p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.14)] dark:bg-slate-900 dark:shadow-[0_18px_40px_rgba(2,6,23,0.42)]"
+                                >
                                   <DropdownMenuItem
                                     className="cursor-pointer"
                                     onClick={() => openProjectModal(project, "view")}
