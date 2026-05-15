@@ -145,7 +145,7 @@ export default function Domains() {
         viewport={{ once: true, amount: 0.2 }}
         transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       >
-        <ShadowCard className="overflow-hidden">
+        <ShadowCard className="overflow-hidden py-0">
           <CardContent className="p-0">
             <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <table className="min-w-[1120px] w-full text-left">
