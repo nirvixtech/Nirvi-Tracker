@@ -81,6 +81,10 @@ export default function Servers() {
         <h1 className="text-2xl calistoga-regular text-slate-800 dark:text-slate-100">
           Servers
         </h1>
+        <p className="mt-1 trykker-regular text-slate-500 dark:text-slate-400">
+          Monitor server infrastructure and renewal dates.
+        </p>
+
       </motion.div>
 
       <motion.div
