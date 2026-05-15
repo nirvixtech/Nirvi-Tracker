@@ -851,7 +851,7 @@ export default function Projects() {
               Projects
             </h1>
             <p className="mt-1 trykker-regular text-slate-500 dark:text-slate-400">
-              Create, inspect, and edit every project from one structured dashboard.
+              View and track all your active projects
             </p>
           </div>
 
