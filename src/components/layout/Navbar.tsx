@@ -1,16 +1,16 @@
 import { useNavigate } from "react-router-dom";
 import { Search, Bell, User, LogOut, Menu } from "lucide-react";
 import { motion } from "framer-motion";
-import { Input } from "@/components/ui/input";
+import ThemeToggle from "../ThemeToggle";
+import { Input } from "../ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import ThemeToggle from "../ThemeToggle";
+  DropdownMenuTrigger
+} from "../ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "../ui/avatar";
 
 interface NavbarProps {
   onMenuClick: () => void;

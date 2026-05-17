@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ExternalLink, Server, X } from "lucide-react";
 import { useState } from "react";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 
 type ServerRow = {
   id: number;

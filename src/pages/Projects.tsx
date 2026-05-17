@@ -12,11 +12,11 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import {
   Card,
   CardContent,
-} from "@/components/ui/card";
+} from "../components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -27,9 +27,9 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "../components/ui/dropdown-menu";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 
 type ProjectStatus = "Active" | "Completed" | "Upcoming" | "On Hold";
 type ProjectRole = "Admin" | "Manager";

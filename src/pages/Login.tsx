@@ -4,10 +4,10 @@ import { motion } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import logo from '../assets/logo.png'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card'
+import { Label } from '../components/ui/label'
+import { Input } from '../components/ui/input'
+import { Button } from '../components/ui/button'
 
 export default function Login() {
   const navigate = useNavigate()

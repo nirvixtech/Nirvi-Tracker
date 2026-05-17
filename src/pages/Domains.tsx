@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { AlertTriangle, ExternalLink } from "lucide-react";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 
 type DeliveryStatus = "Active" | "Delivered";
 

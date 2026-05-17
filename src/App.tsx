@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { Toaster } from '@/components/ui/sonner'
+import { Toaster } from './components/ui/sonner'
 import Login from './pages/Login'
 import DashboardLayout from './components/layout/DashboardLayout'
 import Dashboard from './pages/Dashboard'

@@ -2,8 +2,8 @@ import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import { useState } from "react";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "../components/ui/card";
+import { Input } from "../components/ui/input";
 import ProjectDetailsModal from "../components/projects/ProjectDetailsModal";
 import { statusColors, useProjects } from "../lib/projects";
 
