@@ -18,9 +18,12 @@ export default function Login() {
     e.preventDefault()
 
     if (username === 'nirvix' && password === 'admin123') {
-      toast.success('Login successful! Redirecting...')
+      toast.success('Login successful!')
       navigate('/dashboard')
-    } else {
+    } else if (username === '' || password === '') {
+      toast.error('Username and password are required')
+    }
+    else {
       toast.error('Invalid username or password')
     }
   }
