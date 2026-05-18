@@ -907,7 +907,7 @@ export default function Projects() {
 
               <motion.div whileHover={{ y: -2, scale: 1.01 }} whileTap={{ scale: 0.98 }}>
                 <Button
-                  className="cursor-pointer  rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200/80 dark:border-slate-700"
+                  className="rounded-lg border-slate-200/80 bg-slate-50 font-normal dark:border-slate-700 dark:bg-slate-800"
                   onClick={openCreateModal}
                 >
                   <FolderPlus className="size-4" />
