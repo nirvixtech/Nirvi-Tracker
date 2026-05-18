@@ -98,6 +98,9 @@ const statuses: Array<DeliveryStatus | "All"> = [
 const inputClassName =
   "h-11 rounded-xl border-slate-200/80 bg-white text-slate-800 shadow-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 focus-visible:ring-1 focus-visible:ring-blue-500/30 focus-visible:border-blue-400/50";
 
+const interactiveInputClassName =
+  `${inputClassName} cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer`;
+
 function ShadowCard({
   children,
   className = "",
@@ -298,7 +301,7 @@ function DomainModal({
                     type="date"
                     value={formData.renewalDate}
                     onChange={(event) => onChange("renewalDate", event.target.value)}
-                    className={inputClassName}
+                    className={interactiveInputClassName}
                     required
                   />
                 </div>
@@ -307,15 +310,39 @@ function DomainModal({
                   <Label htmlFor="domain-status" className="text-slate-700 dark:text-slate-200">
                     Status
                   </Label>
-                  <select
-                    id="domain-status"
-                    value={formData.status}
-                    onChange={(event) => onChange("status", event.target.value as DeliveryStatus)}
-                    className={`${inputClassName} w-full px-3`}
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Delivered">Delivered</option>
-                  </select>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        id="domain-status"
+                        type="button"
+                        className={`${interactiveInputClassName} flex w-full items-center justify-between rounded-xl border border-slate-200/80 px-3 text-left shadow-none dark:border-slate-700`}
+                      >
+                        <span className="truncate">{formData.status}</span>
+                        <ChevronDown className="size-4 shrink-0 text-slate-400" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="start"
+                      className="rounded-xl border-0 ring-0 bg-white p-1.5 shadow-[0_18px_42px_rgba(15,23,42,0.14)] dark:bg-slate-900 dark:shadow-[0_20px_48px_rgba(2,6,23,0.48)]"
+                    >
+                      <DropdownMenuRadioGroup
+                        value={formData.status}
+                        onValueChange={(value) => onChange("status", value as DeliveryStatus)}
+                      >
+                        {statuses
+                          .filter((status) => status !== "All" && status !== "Terminated")
+                          .map((status) => (
+                            <DropdownMenuRadioItem
+                              key={status}
+                              value={status}
+                              className="cursor-pointer rounded-lg px-3 py-2 text-sm text-slate-700 focus:bg-slate-100 dark:text-slate-100 dark:focus:bg-slate-800"
+                            >
+                              {status}
+                            </DropdownMenuRadioItem>
+                          ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 
