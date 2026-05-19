@@ -15,6 +15,7 @@ import {
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { createDomain, fetchDomains, type Domain as ApiDomain } from "../lib/api";
+import { cn } from "../lib/utils";
 
 type DeliveryStatus = "Active" | "Terminated" | "Delivered";
 
@@ -71,7 +72,73 @@ function ShadowCard({
   );
 }
 
-function formatRenewalDate(value: string | null) {
+function SkeletonBlock({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "animate-pulse rounded-xl bg-slate-200/80 dark:bg-slate-800/80",
+        className,
+      )}
+    />
+  );
+}
+
+function DomainsSkeleton() {
+  return (
+    <div className="space-y-6 p-4 md:p-6">
+      {/* Header */}
+      <div className="space-y-2">
+        <SkeletonBlock className="h-8 w-44 rounded-lg" />
+        <SkeletonBlock className="h-4 w-72 rounded-md" />
+      </div>
+
+      {/* ShadowCard — search + filter + table all inside, matching real layout */}
+      <div className="overflow-hidden rounded-[22px] bg-white shadow-[0_12px_36px_rgba(15,23,42,0.06)] dark:bg-slate-900 dark:shadow-[0_18px_46px_rgba(2,6,23,0.32)]">
+        <div className="p-6 space-y-5">
+          {/* Search + filter + button */}
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <SkeletonBlock className="h-10 w-full max-w-xl rounded-lg" />
+            <SkeletonBlock className="h-10 w-48 rounded-xl" />
+            <SkeletonBlock className="h-10 w-36 rounded-lg" />
+          </div>
+
+          {/* Inner table container */}
+          <div className="overflow-hidden rounded-[22px] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)] dark:bg-slate-900">
+            <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <table className="min-w-[1120px] w-full text-left">
+                <thead className="bg-slate-50/85 dark:bg-slate-950/80">
+                  <tr className="border-b border-slate-200/80 dark:border-slate-800/80">
+                    <th className="px-5 py-4"><SkeletonBlock className="h-3 w-16 rounded-md" /></th>
+                    <th className="px-5 py-4"><SkeletonBlock className="h-3 w-8 rounded-md" /></th>
+                    <th className="px-5 py-4"><SkeletonBlock className="h-3 w-24 rounded-md" /></th>
+                    <th className="px-5 py-4"><SkeletonBlock className="h-3 w-28 rounded-md" /></th>
+                    <th className="px-5 py-4"><SkeletonBlock className="h-3 w-12 rounded-md" /></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200/70 dark:divide-slate-800/80">
+                  {Array.from({ length: 6 }).map((_, row) => (
+                    <tr key={row} className="bg-white dark:bg-slate-900">
+                      <td className="px-5 py-4"><SkeletonBlock className="h-4 w-36 rounded-md" /></td>
+                      <td className="px-5 py-4"><SkeletonBlock className="h-4 w-52 rounded-md" /></td>
+                      <td className="px-5 py-4"><SkeletonBlock className="h-4 w-44 rounded-md" /></td>
+                      <td className="px-5 py-4">
+                        <div className="space-y-2">
+                          <SkeletonBlock className="h-4 w-16 rounded-md" />
+                          <SkeletonBlock className="h-2 w-20 rounded-full" />
+                        </div>
+                      </td>
+                      <td className="px-5 py-4"><SkeletonBlock className="h-6 w-20 rounded-full" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}function formatRenewalDate(value: string | null) {
   if (!value) {
     return null;
   }
@@ -342,6 +409,9 @@ export default function Domains() {
     },
   });
 
+  const isLoading = domainsQuery.isLoading;
+  const isError = domainsQuery.isError;
+
   const domainRows: DomainRow[] = domainsQuery.data ?? emptyDomainRows;
 
   const filteredDomains = useMemo(() => {
@@ -395,6 +465,20 @@ export default function Domains() {
       status: formData.status,
     });
   };
+
+  if (isLoading) {
+    return <DomainsSkeleton />;
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6 p-4 md:p-6">
+        <div className="rounded-xl bg-rose-50 p-6 text-center text-rose-600 dark:bg-rose-950/30 dark:text-rose-300">
+          Could not load domains from the API. Start the Express server and try again.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -469,25 +553,7 @@ export default function Domains() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200/70 dark:divide-slate-800/80">
-                    {domainsQuery.isLoading ? (
-                      <tr className="bg-white dark:bg-slate-900">
-                        <td
-                          colSpan={5}
-                          className="px-5 py-12 text-center text-sm text-slate-500 dark:text-slate-400"
-                        >
-                          Loading domains...
-                        </td>
-                      </tr>
-                    ) : domainsQuery.isError ? (
-                      <tr className="bg-white dark:bg-slate-900">
-                        <td
-                          colSpan={5}
-                          className="px-5 py-12 text-center text-sm text-rose-500 dark:text-rose-300"
-                        >
-                          Could not load domains from the API. Start the Express server and try again.
-                        </td>
-                      </tr>
-                    ) : filteredDomains.length > 0 ? filteredDomains.map((domain) => {
+                    {filteredDomains.length > 0 ? filteredDomains.map((domain) => {
                       const daysRemaining = getDaysRemaining(domain.renewalDate);
                       const isExpired = daysRemaining !== null && daysRemaining <= 0;
                       const isWarning = domain.accent === "warning";

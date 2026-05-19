@@ -381,14 +381,95 @@ function InviteCard() {
   );
 }
 
+/* ─── Skeleton ─── */
+function SkeletonBlock({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-xl bg-slate-200/80 dark:bg-slate-800/80 ${className}`} />;
+}
+
+function TeamSkeleton() {
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex items-start justify-between">
+        <div className="space-y-2">
+          <SkeletonBlock className="h-8 w-20 rounded-lg" />
+          <SkeletonBlock className="h-4 w-72 rounded-md" />
+        </div>
+        <SkeletonBlock className="hidden sm:block h-8 w-28 rounded-lg" />
+      </div>
+
+      <div className="rounded-2xl bg-white shadow-sm border border-slate-200/60 dark:border-slate-800 dark:bg-slate-900 p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <SkeletonBlock className="h-10 w-10 rounded-xl" />
+          <div className="space-y-1.5">
+            <SkeletonBlock className="h-5 w-36 rounded-md" />
+            <SkeletonBlock className="h-3 w-52 rounded-md" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <SkeletonBlock className="h-10 rounded-lg" />
+          <SkeletonBlock className="h-10 rounded-lg" />
+        </div>
+        <div className="flex gap-2">
+          <SkeletonBlock className="h-9 w-24 rounded-lg" />
+          <SkeletonBlock className="h-9 w-28 rounded-lg" />
+          <SkeletonBlock className="h-9 w-24 rounded-lg" />
+        </div>
+        <div className="flex items-center justify-between">
+          <SkeletonBlock className="h-5 w-40 rounded-md" />
+          <SkeletonBlock className="h-10 w-36 rounded-lg" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-xl bg-white shadow-sm border border-slate-200/60 dark:border-slate-800 dark:bg-slate-900 p-5 space-y-4"
+          >
+            <div className="flex items-center gap-4">
+              <SkeletonBlock className="size-12 rounded-xl shrink-0" />
+              <div className="space-y-1.5 flex-1 min-w-0">
+                <SkeletonBlock className="h-4 w-32 rounded-md" />
+                <SkeletonBlock className="h-3 w-40 rounded-md" />
+                <SkeletonBlock className="h-4 w-16 rounded-full" />
+              </div>
+            </div>
+            <SkeletonBlock className="h-4 w-24 rounded-md" />
+            <div className="space-y-2">
+              <SkeletonBlock className="h-4 w-12 rounded-md" />
+              <SkeletonBlock className="h-4 w-full rounded-md" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Team Page ─── */
 export default function Team() {
   const teamQuery = useQuery({
     queryKey: ["team"],
     queryFn: fetchTeam,
   });
+  const isLoading = teamQuery.isLoading;
+  const isError = teamQuery.isError;
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const teamMembers = teamQuery.data ?? [];
+
+  if (isLoading) {
+    return <TeamSkeleton />;
+  }
+
+  if (isError) {
+    return (
+      <div className="p-4 md:p-6 space-y-6">
+        <div className="rounded-xl bg-rose-50 p-6 text-center text-rose-600 dark:bg-rose-950/30 dark:text-rose-300">
+          Could not load team data from the API. Start the Express server and try again.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -415,23 +496,14 @@ export default function Team() {
 
       {/* Members Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {teamQuery.isLoading ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-12 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400 sm:col-span-2 lg:col-span-3">
-            Loading team members...
-          </div>
-        ) : teamQuery.isError ? (
-          <div className="rounded-2xl border border-dashed border-rose-200 px-5 py-12 text-center text-sm text-rose-500 dark:border-rose-900 dark:text-rose-300 sm:col-span-2 lg:col-span-3">
-            Could not load team data from the API. Start the Express server and try again.
-          </div>
-        ) : (
-          teamMembers.map((member, idx) => (
-            <MemberCard
-              key={member.email}
-              member={member}
-              delay={idx * 0.08}
-              onClick={() => setSelectedMember(member)}
-            />
-          ))
+        {teamMembers.map((member, idx) => (
+          <MemberCard
+            key={member.email}
+            member={member}
+            delay={idx * 0.08}
+            onClick={() => setSelectedMember(member)}
+          />
+        )
         )}
       </div>
 

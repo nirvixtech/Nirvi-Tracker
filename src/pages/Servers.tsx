@@ -22,13 +22,91 @@ function ShadowCard({
   );
 }
 
+function SkeletonBlock({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-xl bg-slate-200/80 dark:bg-slate-800/80 ${className}`} />;
+}
+
+function ServersSkeleton() {
+  return (
+    <div className="space-y-6 p-4 md:p-6">
+      {/* Header */}
+      <div className="space-y-2">
+        <SkeletonBlock className="h-8 w-28 rounded-lg" />
+        <SkeletonBlock className="h-4 w-80 rounded-md" />
+      </div>
+
+      {/* ShadowCard */}
+      <div className="rounded-[20px] bg-white shadow-[0_12px_36px_rgba(15,23,42,0.06)] dark:bg-slate-900 dark:shadow-[0_18px_46px_rgba(2,6,23,0.32)] p-6 space-y-5">
+        {/* Subheader: icon + "Live Server List" */}
+        <div className="flex items-center gap-3">
+          <SkeletonBlock className="h-8 w-8 rounded-lg" />
+          <SkeletonBlock className="h-6 w-40 rounded-lg" />
+        </div>
+
+        {/* Table — px-2 py-4 matches real cell padding */}
+        <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <table className="min-w-[1020px] w-full text-left">
+            <thead>
+              <tr className="border-b border-slate-200/80 dark:border-slate-800/80">
+                <th className="px-2 py-4"><SkeletonBlock className="h-3 w-24 rounded-md" /></th>
+                <th className="px-2 py-4"><SkeletonBlock className="h-3 w-10 rounded-md" /></th>
+                <th className="px-2 py-4"><SkeletonBlock className="h-3 w-20 rounded-md" /></th>
+                <th className="px-2 py-4"><SkeletonBlock className="h-3 w-16 rounded-md" /></th>
+                <th className="px-2 py-4"><SkeletonBlock className="h-3 w-16 rounded-md" /></th>
+                <th className="px-2 py-4"><SkeletonBlock className="h-3 w-12 rounded-md" /></th>
+                <th className="px-2 py-4"><SkeletonBlock className="h-3 w-20 rounded-md" /></th>
+                <th className="px-2 py-4"><SkeletonBlock className="h-3 w-12 rounded-md" /></th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 5 }).map((_, row) => (
+                <tr key={row} className="border-b border-slate-200/70 align-top dark:border-slate-800/80">
+                  <td className="px-2 py-4"><SkeletonBlock className="h-4 w-28 rounded-md" /></td>
+                  <td className="px-2 py-4"><SkeletonBlock className="h-6 w-16 rounded-lg" /></td>
+                  <td className="px-2 py-4"><SkeletonBlock className="h-4 w-28 rounded-md" /></td>
+                  <td className="px-2 py-4"><SkeletonBlock className="h-7 w-28 rounded-full" /></td>
+                  <td className="px-2 py-4"><SkeletonBlock className="h-6 w-20 rounded-lg" /></td>
+                  <td className="px-2 py-4">
+                    <div className="space-y-1.5">
+                      <SkeletonBlock className="h-4 w-16 rounded-md" />
+                      <SkeletonBlock className="h-3 w-24 rounded-md" />
+                    </div>
+                  </td>
+                  <td className="px-2 py-4"><SkeletonBlock className="h-4 w-20 rounded-md" /></td>
+                  <td className="px-2 py-4"><SkeletonBlock className="h-7 w-14 rounded-xl" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Servers() {
   const serversQuery = useQuery({
     queryKey: ["servers"],
     queryFn: fetchServers,
   });
+  const isLoading = serversQuery.isLoading;
+  const isError = serversQuery.isError;
   const [selectedServer, setSelectedServer] = useState<ServerRow | null>(null);
   const servers = serversQuery.data ?? [];
+
+  if (isLoading) {
+    return <ServersSkeleton />;
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6 p-4 md:p-6">
+        <div className="rounded-xl bg-rose-50 p-6 text-center text-rose-600 dark:bg-rose-950/30 dark:text-rose-300">
+          Could not load servers from the API. Start the Express server and try again.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -80,26 +158,7 @@ export default function Servers() {
                   </tr>
                 </thead>
                 <tbody>
-                  {serversQuery.isLoading ? (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="px-2 py-12 text-center text-sm text-slate-500 dark:text-slate-400"
-                      >
-                        Loading servers...
-                      </td>
-                    </tr>
-                  ) : serversQuery.isError ? (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="px-2 py-12 text-center text-sm text-rose-500 dark:text-rose-300"
-                      >
-                        Could not load servers from the API. Start the Express server and try again.
-                      </td>
-                    </tr>
-                  ) : (
-                    servers.map((server) => (
+                  {servers.map((server) => (
                       <tr
                         key={server.id}
                         className="border-b border-slate-200/70 align-top transition-colors hover:bg-slate-50/60 dark:border-slate-800/80 dark:hover:bg-slate-950/60"
@@ -153,8 +212,7 @@ export default function Servers() {
                           </span>
                         </td>
                       </tr>
-                    ))
-                  )}
+                    ))}
                 </tbody>
               </table>
             </div>

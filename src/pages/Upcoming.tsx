@@ -9,6 +9,58 @@ import ProjectDetailsModal from "../components/projects/ProjectDetailsModal";
 import { statusColors } from "../lib/projects";
 import { fetchProjects, type Project } from "../lib/api";
 
+function SkeletonBlock({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-xl bg-slate-200/80 dark:bg-slate-800/80 ${className}`} />;
+}
+
+function UpcomingSkeleton() {
+  return (
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="space-y-2">
+        <SkeletonBlock className="h-8 w-52 rounded-lg" />
+        <SkeletonBlock className="h-4 w-80 rounded-md" />
+      </div>
+
+      <SkeletonBlock className="h-10 w-full max-w-xl rounded-lg" />
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-2xl bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08),0_4px_14px_rgba(15,23,42,0.05)] dark:bg-slate-900 p-5 space-y-5"
+          >
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <SkeletonBlock className="h-5 w-36 rounded-md" />
+                <SkeletonBlock className="h-5 w-16 rounded-full" />
+              </div>
+              <SkeletonBlock className="h-4 w-28 rounded-md" />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <SkeletonBlock className="h-3 w-8 rounded-sm" />
+                <SkeletonBlock className="h-4 w-24 rounded-md" />
+              </div>
+              <div className="space-y-1">
+                <SkeletonBlock className="h-3 w-16 rounded-sm" />
+                <SkeletonBlock className="h-4 w-24 rounded-md" />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <SkeletonBlock className="h-3 w-20 rounded-sm" />
+                <SkeletonBlock className="h-4 w-48 rounded-md" />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <SkeletonBlock className="h-3 w-16 rounded-sm" />
+                <SkeletonBlock className="h-4 w-40 rounded-md" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Upcoming() {
   const projectsQuery = useQuery({
     queryKey: ["projects"],
@@ -16,6 +68,8 @@ export default function Upcoming() {
   });
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const isLoading = projectsQuery.isLoading;
+  const isError = projectsQuery.isError;
   const projects = projectsQuery.data ?? [];
   const upcomingProjects = projects.filter((project) => {
     if (project.status !== "Upcoming") {
@@ -36,6 +90,20 @@ export default function Upcoming() {
       || project.assignedTo.some((member) => member.toLowerCase().includes(query))
     );
   });
+
+  if (isLoading) {
+    return <UpcomingSkeleton />;
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6 p-4 md:p-6">
+        <div className="rounded-xl bg-rose-50 p-6 text-center text-rose-600 dark:bg-rose-950/30 dark:text-rose-300">
+          Could not load projects from the API. Start the Express server and try again.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -58,15 +126,7 @@ export default function Upcoming() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {projectsQuery.isLoading ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-12 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400 md:col-span-2 xl:col-span-3">
-            Loading upcoming projects...
-          </div>
-        ) : projectsQuery.isError ? (
-          <div className="rounded-2xl border border-dashed border-rose-200 px-5 py-12 text-center text-sm text-rose-500 dark:border-rose-900 dark:text-rose-300 md:col-span-2 xl:col-span-3">
-            Could not load projects from the API. Start the Express server and try again.
-          </div>
-        ) : upcomingProjects.length > 0 ? (
+        {upcomingProjects.length > 0 ? (
           upcomingProjects.map((project, index) => (
             <motion.div
               key={project.id}
