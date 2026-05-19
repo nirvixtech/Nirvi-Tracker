@@ -1,16 +1,22 @@
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import ProjectDetailsModal from "../components/projects/ProjectDetailsModal";
-import { statusColors, useProjects } from "../lib/projects";
+import { statusColors } from "../lib/projects";
+import { fetchProjects, type Project } from "../lib/api";
 
 export default function Upcoming() {
-  const [projects] = useProjects();
-  const [selectedProject, setSelectedProject] = useState<(typeof projects)[number] | null>(null);
+  const projectsQuery = useQuery({
+    queryKey: ["projects"],
+    queryFn: fetchProjects,
+  });
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const projects = projectsQuery.data ?? [];
   const upcomingProjects = projects.filter((project) => {
     if (project.status !== "Upcoming") {
       return false;
@@ -52,7 +58,15 @@ export default function Upcoming() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {upcomingProjects.length > 0 ? (
+        {projectsQuery.isLoading ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-12 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400 md:col-span-2 xl:col-span-3">
+            Loading upcoming projects...
+          </div>
+        ) : projectsQuery.isError ? (
+          <div className="rounded-2xl border border-dashed border-rose-200 px-5 py-12 text-center text-sm text-rose-500 dark:border-rose-900 dark:text-rose-300 md:col-span-2 xl:col-span-3">
+            Could not load projects from the API. Start the Express server and try again.
+          </div>
+        ) : upcomingProjects.length > 0 ? (
           upcomingProjects.map((project, index) => (
             <motion.div
               key={project.id}

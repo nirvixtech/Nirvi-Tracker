@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, ChevronDown, ExternalLink, FolderPlus, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
@@ -13,66 +14,19 @@ import {
 } from "../components/ui/dropdown-menu";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { createDomain, fetchDomains, type Domain as ApiDomain } from "../lib/api";
 
 type DeliveryStatus = "Active" | "Terminated" | "Delivered";
 
-type DomainRow = {
-  id: number;
-  domain: string;
-  url: string;
+type DomainRow = ApiDomain & {
   renewalDate: string | null;
   renewalLabel?: string;
-  status: DeliveryStatus;
   accent?: "warning";
 };
 
-const today = new Date("2026-05-15T00:00:00");
+const emptyDomainRows: DomainRow[] = [];
 
-const domains: DomainRow[] = [
-  {
-    id: 1,
-    domain: "damaruresources.com",
-    url: "https://damaruresources.com",
-    renewalDate: "2026-06-01",
-    status: "Active",
-  },
-  {
-    id: 2,
-    domain: "ainaatv.com",
-    url: "https://ainaatv.com",
-    renewalDate: "2026-03-05",
-    status: "Terminated",
-    accent: "warning",
-  },
-  {
-    id: 3,
-    domain: "serophereonline.com",
-    url: "https://serophereonline.com",
-    renewalDate: "2026-04-21",
-    status: "Terminated",
-  },
-  {
-    id: 4,
-    domain: "globalrisingtravel.com",
-    url: "https://globalrisingtravel.com",
-    renewalDate: "2026-09-01",
-    status: "Active",
-  },
-  {
-    id: 5,
-    domain: "sukiloproperties.ae",
-    url: "https://sukiloproperties.ae",
-    renewalDate: "2026-08-11",
-    status: "Active",
-  },
-  {
-    id: 6,
-    domain: "zencareerhub.ae",
-    url: "https://zencareerhub.ae",
-    renewalDate: "2026-04-12",
-    status: "Delivered",
-  },
-];
+const today = new Date("2026-05-15T00:00:00");
 
 type DomainFormData = {
   domain: string;
@@ -371,11 +325,24 @@ function DomainModal({
 }
 
 export default function Domains() {
-  const [domainRows, setDomainRows] = useState(domains);
+  const queryClient = useQueryClient();
+  const domainsQuery = useQuery({
+    queryKey: ["domains"],
+    queryFn: fetchDomains,
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState(defaultFormData);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<DeliveryStatus | "All">("All");
+  const createDomainMutation = useMutation({
+    mutationFn: createDomain,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["domains"] });
+      closeModal();
+    },
+  });
+
+  const domainRows: DomainRow[] = domainsQuery.data ?? emptyDomainRows;
 
   const filteredDomains = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -421,17 +388,12 @@ export default function Domains() {
       return;
     }
 
-    setDomainRows((current) => [
-      {
-        id: Date.now(),
-        domain: normalizedDomain,
-        url: normalizedUrl,
-        renewalDate: formData.renewalDate,
-        status: formData.status,
-      },
-      ...current,
-    ]);
-    closeModal();
+    createDomainMutation.mutate({
+      domain: normalizedDomain,
+      url: normalizedUrl,
+      renewalDate: formData.renewalDate,
+      status: formData.status,
+    });
   };
 
   return (
@@ -507,7 +469,25 @@ export default function Domains() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200/70 dark:divide-slate-800/80">
-                    {filteredDomains.length > 0 ? filteredDomains.map((domain) => {
+                    {domainsQuery.isLoading ? (
+                      <tr className="bg-white dark:bg-slate-900">
+                        <td
+                          colSpan={5}
+                          className="px-5 py-12 text-center text-sm text-slate-500 dark:text-slate-400"
+                        >
+                          Loading domains...
+                        </td>
+                      </tr>
+                    ) : domainsQuery.isError ? (
+                      <tr className="bg-white dark:bg-slate-900">
+                        <td
+                          colSpan={5}
+                          className="px-5 py-12 text-center text-sm text-rose-500 dark:text-rose-300"
+                        >
+                          Could not load domains from the API. Start the Express server and try again.
+                        </td>
+                      </tr>
+                    ) : filteredDomains.length > 0 ? filteredDomains.map((domain) => {
                       const daysRemaining = getDaysRemaining(domain.renewalDate);
                       const isExpired = daysRemaining !== null && daysRemaining <= 0;
                       const isWarning = domain.accent === "warning";

@@ -1,4 +1,5 @@
 import { AnimatePresence, motion, type Variants } from "framer-motion";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronDown,
   FolderPlus,
@@ -30,27 +31,15 @@ import {
 } from "../components/ui/dropdown-menu";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-
-type ProjectStatus = "Active" | "Completed" | "Upcoming" | "On Hold";
-type ProjectRole = "Admin" | "Manager";
-
-type Project = {
-  id: number;
-  name: string;
-  client: string;
-  type: string;
-  techStack: string;
-  assignedTo: string[];
-  url: string;
-  projectType: string;
-  renewalDate: string;
-  deadline: string;
-  status: ProjectStatus;
-  createdBy: ProjectRole;
-  updatedAt: string;
-};
-
-type ProjectFormData = Omit<Project, "id" | "updatedAt">;
+import {
+  createProject,
+  fetchProjects,
+  type Project,
+  type ProjectFormData,
+  type ProjectRole,
+  type ProjectStatus,
+  updateProject,
+} from "../lib/api";
 
 const teamMembers = [
   "Nirvix",
@@ -84,53 +73,7 @@ const defaultFormData: ProjectFormData = {
   createdBy: "Admin",
 };
 
-const initialProjects: Project[] = [
-  {
-    id: 1,
-    name: "Ainaa TV",
-    client: "Ainaa Media",
-    type: "Consultancy website",
-    techStack: "WordPress, PHP, MySQL",
-    assignedTo: ["Hak yeon", "Alisha", "Light"],
-    url: "https://ainaatv.com",
-    projectType: "News Portal",
-    renewalDate: "2026-08-05",
-    deadline: "2026-06-10",
-    status: "Active",
-    createdBy: "Admin",
-    updatedAt: "Today",
-  },
-  {
-    id: 2,
-    name: "Global Rising Travel",
-    client: "Global Rising",
-    type: "Consultancy website",
-    techStack: "React, Node.js, PostgreSQL",
-    assignedTo: ["Nirvix", "Light"],
-    url: "https://globalrisingtravel.com",
-    projectType: "Tours & Travel",
-    renewalDate: "2026-11-20",
-    deadline: "2026-07-01",
-    status: "Upcoming",
-    createdBy: "Manager",
-    updatedAt: "2 days ago",
-  },
-  {
-    id: 3,
-    name: "Nirvi Tracker",
-    client: "Internal",
-    type: "Consultancy website",
-    techStack: "React, TypeScript, Tailwind",
-    assignedTo: ["Sujuna", "Ryuk"],
-    url: "https://tracker.nirvi.com",
-    projectType: "Internal Tool",
-    renewalDate: "2027-01-15",
-    deadline: "2026-05-30",
-    status: "Active",
-    createdBy: "Admin",
-    updatedAt: "Just now",
-  },
-];
+const emptyProjects: Project[] = [];
 
 const statusColors: Record<ProjectStatus, string> = {
   Active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
@@ -715,7 +658,7 @@ function ProjectModal({
 }
 
 export default function Projects() {
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "All">("All");
   const [techFilter, setTechFilter] = useState("All");
@@ -724,6 +667,30 @@ export default function Projects() {
   const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
   const [modalTitle, setModalTitle] = useState("Create New Project");
   const [formData, setFormData] = useState<ProjectFormData>(defaultFormData);
+
+  const projectsQuery = useQuery({
+    queryKey: ["projects"],
+    queryFn: fetchProjects,
+  });
+
+  const createProjectMutation = useMutation({
+    mutationFn: createProject,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
+      closeModal();
+    },
+  });
+
+  const updateProjectMutation = useMutation({
+    mutationFn: updateProject,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
+      closeModal();
+    },
+  });
+
+  const projects = projectsQuery.data ?? emptyProjects;
+  const isSaving = createProjectMutation.isPending || updateProjectMutation.isPending;
 
   const allLanguages = useMemo(() => {
     const languageSet = new Set<string>();
@@ -816,29 +783,13 @@ export default function Projects() {
     }
 
     if (modalMode === "create") {
-      setProjects((current) => [
-        {
-          id: Date.now(),
-          ...formData,
-          updatedAt: "Just now",
-        },
-        ...current,
-      ]);
+      createProjectMutation.mutate(formData);
     } else if (editingProjectId !== null) {
-      setProjects((current) =>
-        current.map((project) =>
-          project.id === editingProjectId
-            ? {
-              ...project,
-              ...formData,
-              updatedAt: "Just now",
-            }
-            : project,
-        ),
-      );
+      updateProjectMutation.mutate({
+        id: editingProjectId,
+        project: formData,
+      });
     }
-
-    closeModal();
   };
 
   return (
@@ -936,7 +887,25 @@ export default function Projects() {
 
                   <motion.tbody layout className="divide-y divide-slate-200/70 dark:divide-slate-800/80">
                     <AnimatePresence initial={false}>
-                      {filteredProjects.length > 0 ? (
+                      {projectsQuery.isLoading ? (
+                        <tr>
+                          <td
+                            colSpan={9}
+                            className="px-5 py-12 text-center text-sm text-slate-500 dark:text-slate-400"
+                          >
+                            Loading projects...
+                          </td>
+                        </tr>
+                      ) : projectsQuery.isError ? (
+                        <tr>
+                          <td
+                            colSpan={9}
+                            className="px-5 py-12 text-center text-sm text-rose-500 dark:text-rose-300"
+                          >
+                            Could not load projects from the API. Start the Express server and try again.
+                          </td>
+                        </tr>
+                      ) : filteredProjects.length > 0 ? (
                         filteredProjects.map((project) => (
                           <motion.tr
                             key={project.id}
@@ -1062,7 +1031,7 @@ export default function Projects() {
         formData={formData}
         title={modalTitle}
         onClose={closeModal}
-        onSubmit={handleSubmit}
+        onSubmit={isSaving ? () => undefined : handleSubmit}
         onChange={updateFormField}
         onToggleMember={toggleMember}
       />

@@ -1,54 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ExternalLink, Server, X } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { Card, CardContent } from "../components/ui/card";
-
-type ServerRow = {
-  id: number;
-  name: string;
-  type: string;
-  ipAddress: string;
-  websites: number;
-  status: string;
-  statusDetail: string;
-  active: "Active";
-  domains: string[];
-};
-
-const servers: ServerRow[] = [
-  {
-    id: 1,
-    name: "Agni Server",
-    type: "Server",
-    ipAddress: "135.181.141.188",
-    websites: 8,
-    status: "Active",
-    statusDetail: "Server running",
-    active: "Active",
-    domains: [
-      "ainaatv.com",
-      "damaruresources.com",
-      "globalrisingtravel.com",
-      "sukiloproperties.ae",
-      "zencareerhub.ae",
-      "levelup.edu.np",
-      "deeptech.com.np",
-      "serophereonline.com",
-    ],
-  },
-  {
-    id: 2,
-    name: "C5 Server",
-    type: "Server",
-    ipAddress: "198.251.89.34",
-    websites: 1,
-    status: "Active",
-    statusDetail: "Server running",
-    active: "Active",
-    domains: ["ekathas.com"],
-  },
-];
+import { fetchServers, type Server as ServerRow } from "../lib/api";
 
 function ShadowCard({
   children,
@@ -67,7 +23,12 @@ function ShadowCard({
 }
 
 export default function Servers() {
+  const serversQuery = useQuery({
+    queryKey: ["servers"],
+    queryFn: fetchServers,
+  });
   const [selectedServer, setSelectedServer] = useState<ServerRow | null>(null);
+  const servers = serversQuery.data ?? [];
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -119,61 +80,81 @@ export default function Servers() {
                   </tr>
                 </thead>
                 <tbody>
-                  {servers.map((server) => (
-                    <tr
-                      key={server.id}
-                      className="border-b border-slate-200/70 align-top transition-colors hover:bg-slate-50/60 dark:border-slate-800/80 dark:hover:bg-slate-950/60"
-                    >
-                      <td className="px-2 py-4 text-sm font-medium text-slate-900 dark:text-slate-100">
-                        {server.name}
-                      </td>
-                      <td className="px-2 py-4">
-                        <span className="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-                          {server.type}
-                        </span>
-                      </td>
-                      <td className="px-2 py-4 text-sm tracking-[0.12em] text-slate-800 dark:text-slate-200">
-                        {server.ipAddress}
-                      </td>
-                      <td className="px-2 py-4">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedServer(server)}
-                          className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                        >
-                          <span>
-                            {server.domains.length} domain{server.domains.length > 1 ? "s" : ""}
-                          </span>
-                          <span className="text-slate-400">Inspect</span>
-                        </button>
-                      </td>
-                      <td className="px-2 py-4">
-                        <span className="inline-flex rounded-lg bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800 dark:bg-slate-800 dark:text-slate-100">
-                          {server.websites} website{server.websites > 1 ? "s" : ""}
-                        </span>
-                      </td>
-                      <td className="px-2 py-4">
-                        <div className="space-y-0.5">
-                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                            {server.status}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {server.statusDetail}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-2 py-4">
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                          {server.domains.length} domain{server.domains.length > 1 ? "s" : ""}
-                        </p>
-                      </td>
-                      <td className="px-2 py-4">
-                        <span className="inline-flex rounded-xl bg-emerald-100 px-4 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
-                          {server.active}
-                        </span>
+                  {serversQuery.isLoading ? (
+                    <tr>
+                      <td
+                        colSpan={8}
+                        className="px-2 py-12 text-center text-sm text-slate-500 dark:text-slate-400"
+                      >
+                        Loading servers...
                       </td>
                     </tr>
-                  ))}
+                  ) : serversQuery.isError ? (
+                    <tr>
+                      <td
+                        colSpan={8}
+                        className="px-2 py-12 text-center text-sm text-rose-500 dark:text-rose-300"
+                      >
+                        Could not load servers from the API. Start the Express server and try again.
+                      </td>
+                    </tr>
+                  ) : (
+                    servers.map((server) => (
+                      <tr
+                        key={server.id}
+                        className="border-b border-slate-200/70 align-top transition-colors hover:bg-slate-50/60 dark:border-slate-800/80 dark:hover:bg-slate-950/60"
+                      >
+                        <td className="px-2 py-4 text-sm font-medium text-slate-900 dark:text-slate-100">
+                          {server.name}
+                        </td>
+                        <td className="px-2 py-4">
+                          <span className="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                            {server.type}
+                          </span>
+                        </td>
+                        <td className="px-2 py-4 text-sm tracking-[0.12em] text-slate-800 dark:text-slate-200">
+                          {server.ipAddress}
+                        </td>
+                        <td className="px-2 py-4">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedServer(server)}
+                            className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                          >
+                            <span>
+                              {server.domains.length} domain{server.domains.length > 1 ? "s" : ""}
+                            </span>
+                            <span className="text-slate-400">Inspect</span>
+                          </button>
+                        </td>
+                        <td className="px-2 py-4">
+                          <span className="inline-flex rounded-lg bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800 dark:bg-slate-800 dark:text-slate-100">
+                            {server.websites} website{server.websites > 1 ? "s" : ""}
+                          </span>
+                        </td>
+                        <td className="px-2 py-4">
+                          <div className="space-y-0.5">
+                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                              {server.status}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {server.statusDetail}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="px-2 py-4">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            {server.domains.length} domain{server.domains.length > 1 ? "s" : ""}
+                          </p>
+                        </td>
+                        <td className="px-2 py-4">
+                          <span className="inline-flex rounded-xl bg-emerald-100 px-4 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+                            {server.active}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

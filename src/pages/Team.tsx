@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Mail,
@@ -23,89 +24,9 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
+import { fetchTeam, type TeamMember } from "../lib/api";
 
 /* ─── Mock Team Data ─── */
-interface Project {
-  name: string;
-  description: string;
-  status: "Active" | "Delivered" | "On Hold";
-}
-
-interface TeamMember {
-  name: string;
-  role: string;
-  title: string;
-  email: string;
-  color: string;
-  skills: string[];
-  projects: Project[];
-}
-
-const teamMembers: TeamMember[] = [
-  {
-    name: "Nirvix",
-    role: "Admin",
-    title: "Founder & Lead Developer",
-    email: "nirvix@nirvi.dev",
-    color: "bg-blue-500",
-    skills: ["React", "Node.js", "System Design", "DevOps"],
-    projects: [
-      { name: "Nirvi Track", description: "Project Tracker Platform", status: "Active" },
-      { name: "Ainaa TV", description: "News Portal", status: "Delivered" },
-      { name: "Serophero Online", description: "News Portal", status: "Active" },
-    ],
-  },
-  {
-    name: "Sarah",
-    role: "Developer",
-    title: "Senior Full Stack Engineer",
-    email: "sarah@nirvi.dev",
-    color: "bg-emerald-500",
-    skills: ["TypeScript", "Python", "AWS", "PostgreSQL"],
-    projects: [
-      { name: "E-Commerce API", description: "Backend Microservices", status: "Active" },
-      { name: "CRM Dashboard", description: "Internal Tools", status: "Active" },
-      { name: "Analytics Engine", description: "Data Pipeline", status: "On Hold" },
-    ],
-  },
-  {
-    name: "Ryuk",
-    role: "Developer",
-    title: "Backend Specialist",
-    email: "marcus@nirvi.dev",
-    color: "bg-violet-500",
-    skills: ["Go", "Rust", "Docker", "Kubernetes"],
-    projects: [
-      { name: "Global Rising Travel", description: "Tours & Travel", status: "Active" },
-      { name: "Zen Career Hub", description: "Job Portal", status: "Delivered" },
-    ],
-  },
-  {
-    name: "Alisha",
-    role: "Designer",
-    title: "UI/UX Lead",
-    email: "aisha@nirvi.dev",
-    color: "bg-amber-500",
-    skills: ["Figma", "Motion Design", "Design Systems", "User Research"],
-    projects: [
-      { name: "Portfolio Redesign", description: "Creative Agency Site", status: "Delivered" },
-      { name: "Serophero Online", description: "News Portal", status: "Active" },
-    ],
-  },
-  {
-    name: "Light",
-    role: "Designer",
-    title: "Product Designer",
-    email: "james@nirvi.dev",
-    color: "bg-rose-500",
-    skills: ["Adobe XD", "Illustration", "Prototyping", "Branding"],
-    projects: [
-      { name: "Ainaa TV", description: "News Portal Rebrand", status: "Delivered" },
-      { name: "Nirvi Track", description: "Dashboard UI", status: "Active" },
-    ],
-  },
-];
-
 const roles = [
   { label: "Admin", value: "admin", icon: Shield },
   { label: "Developer", value: "developer", icon: Code },
@@ -462,7 +383,12 @@ function InviteCard() {
 
 /* ─── Team Page ─── */
 export default function Team() {
+  const teamQuery = useQuery({
+    queryKey: ["team"],
+    queryFn: fetchTeam,
+  });
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const teamMembers = teamQuery.data ?? [];
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -489,14 +415,24 @@ export default function Team() {
 
       {/* Members Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {teamMembers.map((member, idx) => (
-          <MemberCard
-            key={member.email}
-            member={member}
-            delay={idx * 0.08}
-            onClick={() => setSelectedMember(member)}
-          />
-        ))}
+        {teamQuery.isLoading ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-12 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400 sm:col-span-2 lg:col-span-3">
+            Loading team members...
+          </div>
+        ) : teamQuery.isError ? (
+          <div className="rounded-2xl border border-dashed border-rose-200 px-5 py-12 text-center text-sm text-rose-500 dark:border-rose-900 dark:text-rose-300 sm:col-span-2 lg:col-span-3">
+            Could not load team data from the API. Start the Express server and try again.
+          </div>
+        ) : (
+          teamMembers.map((member, idx) => (
+            <MemberCard
+              key={member.email}
+              member={member}
+              delay={idx * 0.08}
+              onClick={() => setSelectedMember(member)}
+            />
+          ))
+        )}
       </div>
 
       {/* Modal */}
