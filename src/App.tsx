@@ -9,6 +9,7 @@ import Ongoing from './pages/Ongoing'
 import Servers from './pages/Servers'
 import Domains from './pages/Domains'
 import Team from './pages/Team'
+import NotFound from './pages/NotFound'
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="/domains" element={<Domains />} />
           <Route path="/team" element={<Team />} />
         </Route>
+        <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster position="top-right" richColors />
     </BrowserRouter>
