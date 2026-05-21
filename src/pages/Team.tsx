@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Mail,
@@ -23,89 +24,9 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
+import { fetchTeam, type TeamMember } from "../lib/api";
 
 /* ─── Mock Team Data ─── */
-interface Project {
-  name: string;
-  description: string;
-  status: "Active" | "Delivered" | "On Hold";
-}
-
-interface TeamMember {
-  name: string;
-  role: string;
-  title: string;
-  email: string;
-  color: string;
-  skills: string[];
-  projects: Project[];
-}
-
-const teamMembers: TeamMember[] = [
-  {
-    name: "Nirvix",
-    role: "Admin",
-    title: "Founder & Lead Developer",
-    email: "nirvix@nirvi.dev",
-    color: "bg-blue-500",
-    skills: ["React", "Node.js", "System Design", "DevOps"],
-    projects: [
-      { name: "Nirvi Track", description: "Project Tracker Platform", status: "Active" },
-      { name: "Ainaa TV", description: "News Portal", status: "Delivered" },
-      { name: "Serophero Online", description: "News Portal", status: "Active" },
-    ],
-  },
-  {
-    name: "Sarah",
-    role: "Developer",
-    title: "Senior Full Stack Engineer",
-    email: "sarah@nirvi.dev",
-    color: "bg-emerald-500",
-    skills: ["TypeScript", "Python", "AWS", "PostgreSQL"],
-    projects: [
-      { name: "E-Commerce API", description: "Backend Microservices", status: "Active" },
-      { name: "CRM Dashboard", description: "Internal Tools", status: "Active" },
-      { name: "Analytics Engine", description: "Data Pipeline", status: "On Hold" },
-    ],
-  },
-  {
-    name: "Ryuk",
-    role: "Developer",
-    title: "Backend Specialist",
-    email: "marcus@nirvi.dev",
-    color: "bg-violet-500",
-    skills: ["Go", "Rust", "Docker", "Kubernetes"],
-    projects: [
-      { name: "Global Rising Travel", description: "Tours & Travel", status: "Active" },
-      { name: "Zen Career Hub", description: "Job Portal", status: "Delivered" },
-    ],
-  },
-  {
-    name: "Alisha",
-    role: "Designer",
-    title: "UI/UX Lead",
-    email: "aisha@nirvi.dev",
-    color: "bg-amber-500",
-    skills: ["Figma", "Motion Design", "Design Systems", "User Research"],
-    projects: [
-      { name: "Portfolio Redesign", description: "Creative Agency Site", status: "Delivered" },
-      { name: "Serophero Online", description: "News Portal", status: "Active" },
-    ],
-  },
-  {
-    name: "Light",
-    role: "Designer",
-    title: "Product Designer",
-    email: "james@nirvi.dev",
-    color: "bg-rose-500",
-    skills: ["Adobe XD", "Illustration", "Prototyping", "Branding"],
-    projects: [
-      { name: "Ainaa TV", description: "News Portal Rebrand", status: "Delivered" },
-      { name: "Nirvi Track", description: "Dashboard UI", status: "Active" },
-    ],
-  },
-];
-
 const roles = [
   { label: "Admin", value: "admin", icon: Shield },
   { label: "Developer", value: "developer", icon: Code },
@@ -460,9 +381,95 @@ function InviteCard() {
   );
 }
 
+/* ─── Skeleton ─── */
+function SkeletonBlock({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-xl bg-slate-200/80 dark:bg-slate-800/80 ${className}`} />;
+}
+
+function TeamSkeleton() {
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex items-start justify-between">
+        <div className="space-y-2">
+          <SkeletonBlock className="h-8 w-20 rounded-lg" />
+          <SkeletonBlock className="h-4 w-72 rounded-md" />
+        </div>
+        <SkeletonBlock className="hidden sm:block h-8 w-28 rounded-lg" />
+      </div>
+
+      <div className="rounded-2xl bg-white shadow-sm border border-slate-200/60 dark:border-slate-800 dark:bg-slate-900 p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <SkeletonBlock className="h-10 w-10 rounded-xl" />
+          <div className="space-y-1.5">
+            <SkeletonBlock className="h-5 w-36 rounded-md" />
+            <SkeletonBlock className="h-3 w-52 rounded-md" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <SkeletonBlock className="h-10 rounded-lg" />
+          <SkeletonBlock className="h-10 rounded-lg" />
+        </div>
+        <div className="flex gap-2">
+          <SkeletonBlock className="h-9 w-24 rounded-lg" />
+          <SkeletonBlock className="h-9 w-28 rounded-lg" />
+          <SkeletonBlock className="h-9 w-24 rounded-lg" />
+        </div>
+        <div className="flex items-center justify-between">
+          <SkeletonBlock className="h-5 w-40 rounded-md" />
+          <SkeletonBlock className="h-10 w-36 rounded-lg" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-xl bg-white shadow-sm border border-slate-200/60 dark:border-slate-800 dark:bg-slate-900 p-5 space-y-4"
+          >
+            <div className="flex items-center gap-4">
+              <SkeletonBlock className="size-12 rounded-xl shrink-0" />
+              <div className="space-y-1.5 flex-1 min-w-0">
+                <SkeletonBlock className="h-4 w-32 rounded-md" />
+                <SkeletonBlock className="h-3 w-40 rounded-md" />
+                <SkeletonBlock className="h-4 w-16 rounded-full" />
+              </div>
+            </div>
+            <SkeletonBlock className="h-4 w-24 rounded-md" />
+            <div className="space-y-2">
+              <SkeletonBlock className="h-4 w-12 rounded-md" />
+              <SkeletonBlock className="h-4 w-full rounded-md" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Team Page ─── */
 export default function Team() {
+  const teamQuery = useQuery({
+    queryKey: ["team"],
+    queryFn: fetchTeam,
+  });
+  const isLoading = teamQuery.isLoading;
+  const isError = teamQuery.isError;
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const teamMembers = teamQuery.data ?? [];
+
+  if (isLoading) {
+    return <TeamSkeleton />;
+  }
+
+  if (isError) {
+    return (
+      <div className="p-4 md:p-6 space-y-6">
+        <div className="rounded-xl bg-rose-50 p-6 text-center text-rose-600 dark:bg-rose-950/30 dark:text-rose-300">
+          Could not load team data from the API. Start the Express server and try again.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -496,7 +503,8 @@ export default function Team() {
             delay={idx * 0.08}
             onClick={() => setSelectedMember(member)}
           />
-        ))}
+        )
+        )}
       </div>
 
       {/* Modal */}

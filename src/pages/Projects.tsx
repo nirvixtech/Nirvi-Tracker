@@ -1,4 +1,5 @@
 import { AnimatePresence, motion, type Variants } from "framer-motion";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronDown,
   FolderPlus,
@@ -30,27 +31,16 @@ import {
 } from "../components/ui/dropdown-menu";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-
-type ProjectStatus = "Active" | "Completed" | "Upcoming" | "On Hold";
-type ProjectRole = "Admin" | "Manager";
-
-type Project = {
-  id: number;
-  name: string;
-  client: string;
-  type: string;
-  techStack: string;
-  assignedTo: string[];
-  url: string;
-  projectType: string;
-  renewalDate: string;
-  deadline: string;
-  status: ProjectStatus;
-  createdBy: ProjectRole;
-  updatedAt: string;
-};
-
-type ProjectFormData = Omit<Project, "id" | "updatedAt">;
+import {
+  createProject,
+  fetchProjects,
+  type Project,
+  type ProjectFormData,
+  type ProjectRole,
+  type ProjectStatus,
+  updateProject,
+} from "../lib/api";
+import { cn } from "../lib/utils";
 
 const teamMembers = [
   "Nirvix",
@@ -84,53 +74,7 @@ const defaultFormData: ProjectFormData = {
   createdBy: "Admin",
 };
 
-const initialProjects: Project[] = [
-  {
-    id: 1,
-    name: "Ainaa TV",
-    client: "Ainaa Media",
-    type: "Consultancy website",
-    techStack: "WordPress, PHP, MySQL",
-    assignedTo: ["Hak yeon", "Alisha", "Light"],
-    url: "https://ainaatv.com",
-    projectType: "News Portal",
-    renewalDate: "2026-08-05",
-    deadline: "2026-06-10",
-    status: "Active",
-    createdBy: "Admin",
-    updatedAt: "Today",
-  },
-  {
-    id: 2,
-    name: "Global Rising Travel",
-    client: "Global Rising",
-    type: "Consultancy website",
-    techStack: "React, Node.js, PostgreSQL",
-    assignedTo: ["Nirvix", "Light"],
-    url: "https://globalrisingtravel.com",
-    projectType: "Tours & Travel",
-    renewalDate: "2026-11-20",
-    deadline: "2026-07-01",
-    status: "Upcoming",
-    createdBy: "Manager",
-    updatedAt: "2 days ago",
-  },
-  {
-    id: 3,
-    name: "Nirvi Tracker",
-    client: "Internal",
-    type: "Consultancy website",
-    techStack: "React, TypeScript, Tailwind",
-    assignedTo: ["Sujuna", "Ryuk"],
-    url: "https://tracker.nirvi.com",
-    projectType: "Internal Tool",
-    renewalDate: "2027-01-15",
-    deadline: "2026-05-30",
-    status: "Active",
-    createdBy: "Admin",
-    updatedAt: "Just now",
-  },
-];
+const emptyProjects: Project[] = [];
 
 const statusColors: Record<ProjectStatus, string> = {
   Active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
@@ -189,7 +133,68 @@ function ShadowCard({
   );
 }
 
-function MenuSelectField({
+function SkeletonBlock({
+  className,
+}: {
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "animate-pulse rounded-xl bg-slate-200/80 dark:bg-slate-800/80",
+        className,
+      )}
+    />
+  );
+}
+
+function ProjectsSkeleton() {
+  return (
+    <div className="space-y-6 p-4 md:p-6">
+      {/* Header */}
+      <div className="space-y-2">
+        <SkeletonBlock className="h-8 w-40 rounded-lg" />
+        <SkeletonBlock className="h-4 w-72 rounded-md" />
+      </div>
+
+      {/* Filters row */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <SkeletonBlock className="h-10 w-full max-w-xl rounded-lg" />
+
+        <div className="flex gap-3">
+          <SkeletonBlock className="h-10 w-44 rounded-xl" />
+          <SkeletonBlock className="h-10 w-44 rounded-xl" />
+        </div>
+
+        <SkeletonBlock className="h-10 w-32 rounded-lg" />
+      </div>
+
+      {/* Table container */}
+      <div className="overflow-hidden rounded-[22px] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)] dark:bg-slate-900">
+        {/* table header */}
+        <div className="flex gap-4 border-b border-slate-200/70 dark:border-slate-800 px-5 py-4">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <SkeletonBlock key={i} className="h-3 w-20 rounded-md" />
+          ))}
+        </div>
+
+        {/* rows */}
+        <div className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
+          {Array.from({ length: 6 }).map((_, row) => (
+            <div key={row} className="flex gap-4 px-5 py-4">
+              {Array.from({ length: 9 }).map((_, col) => (
+                <SkeletonBlock
+                  key={col}
+                  className="h-4 flex-1 max-w-[120px] rounded-md"
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+} function MenuSelectField({
   value,
   options,
   onValueChange,
@@ -715,7 +720,7 @@ function ProjectModal({
 }
 
 export default function Projects() {
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "All">("All");
   const [techFilter, setTechFilter] = useState("All");
@@ -724,6 +729,35 @@ export default function Projects() {
   const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
   const [modalTitle, setModalTitle] = useState("Create New Project");
   const [formData, setFormData] = useState<ProjectFormData>(defaultFormData);
+
+  const projectsQuery = useQuery({
+    queryKey: ["projects"],
+    queryFn: fetchProjects,
+  });
+
+  const createProjectMutation = useMutation({
+    mutationFn: createProject,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
+      closeModal();
+    },
+  });
+
+  const updateProjectMutation = useMutation({
+    mutationFn: updateProject,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
+      closeModal();
+    },
+  });
+
+  const projects = projectsQuery.data ?? emptyProjects;
+
+  const isSaving =
+    createProjectMutation.isPending || updateProjectMutation.isPending;
+
+  const isLoading = projectsQuery.isLoading;
+  const isError = projectsQuery.isError;
 
   const allLanguages = useMemo(() => {
     const languageSet = new Set<string>();
@@ -741,15 +775,20 @@ export default function Projects() {
 
   const filteredProjects = projects.filter((project) => {
     const query = searchTerm.trim().toLowerCase();
+
     const matchesSearch =
       query.length === 0 ||
       project.name.toLowerCase().includes(query) ||
       project.client.toLowerCase().includes(query) ||
       project.projectType.toLowerCase().includes(query) ||
       project.techStack.toLowerCase().includes(query) ||
-      project.assignedTo.some((member) => member.toLowerCase().includes(query));
+      project.assignedTo.some((member) =>
+        member.toLowerCase().includes(query)
+      );
+
     const matchesStatus =
       statusFilter === "All" || project.status === statusFilter;
+
     const matchesTech =
       techFilter === "All" ||
       project.techStack
@@ -762,7 +801,7 @@ export default function Projects() {
 
   const updateFormField = <K extends keyof ProjectFormData>(
     field: K,
-    value: ProjectFormData[K],
+    value: ProjectFormData[K]
   ) => {
     setFormData((current) => ({ ...current, [field]: value }));
   };
@@ -792,9 +831,13 @@ export default function Projects() {
     setIsModalOpen(true);
   };
 
-  const openProjectModal = (project: Project, mode: "edit" | "view" = "edit") => {
+  const openProjectModal = (
+    project: Project,
+    mode: "edit" | "view" = "edit"
+  ) => {
     const { id, updatedAt: _updatedAt, ...rest } = project;
     void _updatedAt;
+
     setModalMode(mode);
     setEditingProjectId(id);
     setModalTitle(mode === "view" ? project.name : "Edit Project");
@@ -811,38 +854,45 @@ export default function Projects() {
       formData.projectType.trim(),
     ];
 
-    if (requiredFields.some((field) => !field) || formData.assignedTo.length === 0) {
+    if (
+      requiredFields.some((field) => !field) ||
+      formData.assignedTo.length === 0
+    ) {
       return;
     }
 
     if (modalMode === "create") {
-      setProjects((current) => [
-        {
-          id: Date.now(),
-          ...formData,
-          updatedAt: "Just now",
-        },
-        ...current,
-      ]);
+      createProjectMutation.mutate(formData);
     } else if (editingProjectId !== null) {
-      setProjects((current) =>
-        current.map((project) =>
-          project.id === editingProjectId
-            ? {
-              ...project,
-              ...formData,
-              updatedAt: "Just now",
-            }
-            : project,
-        ),
-      );
+      updateProjectMutation.mutate({
+        id: editingProjectId,
+        project: formData,
+      });
     }
-
-    closeModal();
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 p-4 md:p-6">
+        <ProjectsSkeleton />
+      </div>
+    );
+  }
+
+  //  ERROR STATE
+  if (isError) {
+    return (
+      <div className="space-y-6 p-4 md:p-6">
+        <div className="rounded-xl bg-rose-50 p-6 text-center text-rose-600 dark:bg-rose-950/30 dark:text-rose-300">
+          Could not load projects from the API. Start the Express server and try again.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 md:p-6">
+      {/* HEADER */}
       <motion.div
         initial={{ opacity: 0, y: 18 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -859,13 +909,10 @@ export default function Projects() {
               View and track all your active projects
             </p>
           </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          </div>
         </div>
-
       </motion.div>
 
+      {/* TABLE SECTION */}
       <motion.div
         initial={{ opacity: 0, y: 26 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -874,49 +921,53 @@ export default function Projects() {
       >
         <ShadowCard className="overflow-hidden">
           <CardContent className="space-y-5">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              {/* Search */}
+
+            {/* SEARCH + FILTERS */}
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+
+              {/* SEARCH */}
               <div className="relative flex-1 max-w-xl min-w-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
                 <Input
                   type="text"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Search projects, clients, domains, servers..."
                   className="h-10 w-full rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200/80 dark:border-slate-700 pl-9 pr-4 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:ring-1 focus-visible:ring-blue-500/30 focus-visible:border-blue-400/50"
                 />
               </div>
+              {/* CONTROLS */}
+              <div className="flex w-full flex-wrap gap-3 lg:w-auto lg:flex-nowrap lg:items-center">
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <FilterDropdown
-                  className="min-w-[190px]"
-                  value={statusFilter}
-                  label="All Status"
-                  options={statuses}
-                  onValueChange={(value) => setStatusFilter(value as ProjectStatus | "All")}
-                />
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <FilterDropdown
+                    className="min-w-[190px]"
+                    value={statusFilter}
+                    label="All Status"
+                    options={statuses}
+                    onValueChange={(value) => setStatusFilter(value as ProjectStatus | "All")}
+                  />
 
-                <FilterDropdown
-                  className="min-w-[190px]"
-                  value={techFilter}
-                  label="All Tech"
-                  options={["All", ...allLanguages]}
-                  onValueChange={setTechFilter}
-                />
+                  <FilterDropdown
+                    className="min-w-[190px]"
+                    value={techFilter}
+                    label="All Tech"
+                    options={["All", ...allLanguages]}
+                    onValueChange={setTechFilter}
+                  />
+                </div>
+
+                <motion.div whileHover={{ y: -2, scale: 1.01 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    className="rounded-lg border-slate-200/80 bg-slate-50 font-normal dark:border-slate-700 dark:bg-slate-800"
+                    onClick={openCreateModal}
+                  >
+                    <FolderPlus className="size-4" />
+                    Add Project
+                  </Button>
+                </motion.div>
               </div>
-
-              <motion.div whileHover={{ y: -2, scale: 1.01 }} whileTap={{ scale: 0.98 }}>
-                <Button
-                  className="cursor-pointer  rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200/80 dark:border-slate-700"
-                  onClick={openCreateModal}
-                >
-                  <FolderPlus className="size-4" />
-                  Add Project
-                </Button>
-              </motion.div>
-
             </div>
 
+            {/* TABLE */}
             <div className="overflow-hidden rounded-[22px] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)] dark:bg-slate-900">
               <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 <table className="min-w-[1380px] w-full text-left">
@@ -935,123 +986,120 @@ export default function Projects() {
                   </thead>
 
                   <motion.tbody layout className="divide-y divide-slate-200/70 dark:divide-slate-800/80">
-                    <AnimatePresence initial={false}>
-                      {filteredProjects.length > 0 ? (
-                        filteredProjects.map((project) => (
-                          <motion.tr
-                            key={project.id}
-                            layout
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.22, ease: "easeOut" }}
-                            className="align-top bg-white transition-colors hover:bg-slate-50/70 dark:bg-slate-900 dark:hover:bg-slate-950/70"
-                          >
-                            <td className="px-5 py-4 whitespace-nowrap">
-                              <div className="space-y-1">
-                                <p className="font-semibold text-slate-800 dark:text-slate-100">
-                                  {project.name}
-                                </p>
-                                <p className="text-sm leading-5 text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                                  {project.type}
-                                </p>
-                              </div>
-                            </td>
-                            <td className="px-5 py-4 text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">
-                              {project.client}
-                            </td>
-                            <td className="px-5 py-4 text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">
-                              {project.projectType}
-                            </td>
-                            <td className="px-5 py-4 text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">
-                              {project.techStack}
-                            </td>
-                            <td className="px-5 py-4">
-                              <div className="flex max-w-[320px] flex-wrap gap-1.5">
-                                {project.assignedTo.map((member) => (
-                                  <span
-                                    key={member}
-                                    className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                                  >
-                                    {member}
-                                  </span>
-                                ))}
-                              </div>
-                            </td>
-                            <td className="px-5 py-4">
-                              <span
-                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusColors[project.status]}`}
-                              >
-                                {project.status}
-                              </span>
-                            </td>
-                            <td className="px-5 py-4">
-                              <span
-                                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${roleColors[project.createdBy]}`}
-                              >
-                                {project.createdBy === "Admin" ? (
-                                  <Shield className="size-3.5" />
-                                ) : (
-                                  <UserRound className="size-3.5" />
-                                )}
-                                {project.createdBy}
-                              </span>
-                            </td>
-                            <td className="px-5 py-4 text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">
-                              {project.deadline || "Not set"}
-                            </td>
-                            <td className="px-5 py-4 text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.96 }}>
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      className="ml-auto cursor-pointer rounded-xl border border-slate-200/80 text-slate-600 shadow-sm hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                                    >
-                                      <MoreHorizontal className="size-4" />
-                                    </Button>
-                                  </motion.div>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                  align="end"
-                                  className="w-36 rounded-xl border-0 ring-0 bg-white p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.14)] dark:bg-slate-900 dark:shadow-[0_18px_40px_rgba(2,6,23,0.42)]"
-                                >
-                                  <DropdownMenuItem
-                                    className="cursor-pointer"
-                                    onClick={() => openProjectModal(project, "view")}
-                                  >
-                                    <Eye className="size-4" />
-                                    Open
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="cursor-pointer"
-                                    onClick={() => openProjectModal(project, "edit")}
-                                  >
-                                    <Pencil className="size-4" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </td>
-                          </motion.tr>
+                    {filteredProjects.length > 0 ? (
+                      filteredProjects.map((project) => (
 
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={9}
-                            className="px-5 py-12 text-center text-sm text-slate-500 dark:text-slate-400"
-                          >
-                            No projects match the current search, status, or programming language filter.
+                        <motion.tr
+                          key={project.id}
+                          layout
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.22, ease: "easeOut" }}
+                          className="align-top bg-white transition-colors hover:bg-slate-50/70 dark:bg-slate-900 dark:hover:bg-slate-950/70"
+                        >
+                          <td className="px-5 py-4 whitespace-nowrap">
+                            <div className="space-y-1">
+                              <p className="font-semibold text-slate-800 dark:text-slate-100">
+                                {project.name}
+                              </p>
+                              <p className="text-sm leading-5 text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                {project.type}
+                              </p>
+                            </div>
                           </td>
-                        </tr>
-                      )}
-                    </AnimatePresence>
+                          <td className="px-5 py-4 text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                            {project.client}
+                          </td>
+                          <td className="px-5 py-4 text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                            {project.projectType}
+                          </td>
+                          <td className="px-5 py-4 text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                            {project.techStack}
+                          </td>
+                          <td className="px-5 py-4">
+                            <div className="flex max-w-[320px] flex-wrap gap-1.5">
+                              {project.assignedTo.map((member) => (
+                                <span
+                                  key={member}
+                                  className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                >
+                                  {member}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-5 py-4">
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusColors[project.status]}`}
+                            >
+                              {project.status}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4">
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${roleColors[project.createdBy]}`}
+                            >
+                              {project.createdBy === "Admin" ? (
+                                <Shield className="size-3.5" />
+                              ) : (
+                                <UserRound className="size-3.5" />
+                              )}
+                              {project.createdBy}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                            {project.deadline || "Not set"}
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.96 }}>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="ml-auto cursor-pointer rounded-xl border border-slate-200/80 text-slate-600 shadow-sm hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                                  >
+                                    <MoreHorizontal className="size-4" />
+                                  </Button>
+                                </motion.div>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                className="w-36 rounded-xl border-0 ring-0 bg-white p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.14)] dark:bg-slate-900 dark:shadow-[0_18px_40px_rgba(2,6,23,0.42)]"
+                              >
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onClick={() => openProjectModal(project, "view")}
+                                >
+                                  <Eye className="size-4" />
+                                  Open
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onClick={() => openProjectModal(project, "edit")}
+                                >
+                                  <Pencil className="size-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        </motion.tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={9} className="text-center py-10">
+                          No projects found
+                        </td>
+                      </tr>
+                    )}
                   </motion.tbody>
+
                 </table>
               </div>
             </div>
+
           </CardContent>
         </ShadowCard>
       </motion.div>
@@ -1062,10 +1110,10 @@ export default function Projects() {
         formData={formData}
         title={modalTitle}
         onClose={closeModal}
-        onSubmit={handleSubmit}
+        onSubmit={isSaving ? () => { } : handleSubmit}
         onChange={updateFormField}
         onToggleMember={toggleMember}
       />
-    </div>
+    </div >
   );
 }

@@ -23,6 +23,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import { useQuery } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -30,36 +31,26 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
+import { cn } from "../lib/utils";
+import { fetchDashboard } from "../lib/api";
 
-/* ─── Mock Data ─── */
-const trendData = [
-  { month: "Jan", projects: 4, tasks: 24 },
-  { month: "Feb", projects: 6, tasks: 32 },
-  { month: "Mar", projects: 8, tasks: 45 },
-  { month: "Apr", projects: 5, tasks: 38 },
-  { month: "May", projects: 9, tasks: 52 },
-  { month: "Jun", projects: 12, tasks: 64 },
-];
-
-const statusData = [
-  { name: "Completed", value: 18, color: "#3b82f6" },
-  { name: "Ongoing", value: 9, color: "#f59e0b" },
-  { name: "Upcoming", value: 5, color: "#10b981" },
-  { name: "On Hold", value: 2, color: "#ef4444" },
-];
-
-const resourceData = [
-  { name: "Servers", count: 8, change: +2, icon: Server, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
-  { name: "Domains", count: 14, change: +3, icon: Globe, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-  { name: "Team", count: 6, change: 0, icon: Users, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30" },
-];
-
-const recentProjects = [
-  { name: "E-Commerce API", status: "Ongoing", progress: 72, updated: "2h ago" },
-  { name: "Portfolio Redesign", status: "Completed", progress: 100, updated: "1d ago" },
-  { name: "CRM Dashboard", status: "Upcoming", progress: 0, updated: "3d ago" },
-  { name: "Analytics Engine", status: "Ongoing", progress: 45, updated: "5d ago" },
-];
+const resourceMeta: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
+  Servers: {
+    icon: Server,
+    color: "text-blue-500",
+    bg: "bg-blue-50 dark:bg-blue-950/30",
+  },
+  Domains: {
+    icon: Globe,
+    color: "text-emerald-500",
+    bg: "bg-emerald-50 dark:bg-emerald-950/30",
+  },
+  Team: {
+    icon: Users,
+    color: "text-amber-500",
+    bg: "bg-amber-50 dark:bg-amber-950/30",
+  },
+};
 
 const tooltipStyle = {
   backgroundColor: "rgba(15, 23, 42, 0.92)",
@@ -71,7 +62,101 @@ const tooltipStyle = {
   boxShadow: "0 10px 25px -5px rgba(0,0,0,0.25)",
 };
 
-/* ─── Scroll Animation Wrapper ─── */
+function SkeletonBlock({
+  className,
+}: {
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "animate-pulse rounded-xl bg-slate-200/80 dark:bg-slate-800/80",
+        className,
+      )}
+    />
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="space-y-2">
+        <SkeletonBlock className="h-8 w-40 rounded-lg" />
+        <SkeletonBlock className="h-4 w-full max-w-md rounded-md" />
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Card
+            key={index}
+            className="ring-0 shadow-sm border-slate-200/60 dark:border-slate-700/90 dark:bg-slate-900/85"
+          >
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <SkeletonBlock className="size-10 rounded-xl" />
+                  <div className="space-y-2">
+                    <SkeletonBlock className="h-4 w-20 rounded-md" />
+                    <SkeletonBlock className="h-7 w-16 rounded-md" />
+                  </div>
+                </div>
+                <SkeletonBlock className="h-6 w-14 rounded-full" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2 ring-0 shadow-sm border-slate-200/60 dark:border-slate-700/90 dark:bg-slate-900/85">
+          <CardHeader className="pb-2 space-y-2">
+            <SkeletonBlock className="h-5 w-36 rounded-md" />
+            <SkeletonBlock className="h-4 w-52 rounded-md" />
+          </CardHeader>
+          <CardContent>
+            <div className="h-60 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-4 dark:border-slate-700/80 dark:bg-slate-950/30">
+              <div className="relative h-full w-full">
+
+                {/* bottom labels */}
+                <div className="absolute bottom-0 left-0 right-0 flex justify-between px-2">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <SkeletonBlock
+                      key={index}
+                      className="h-3 w-8 rounded-md"
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="ring-0 shadow-sm border-slate-200/60 dark:border-slate-700/90 dark:bg-slate-900/85">
+          <CardHeader className="pb-2 space-y-2">
+            <SkeletonBlock className="h-5 w-36 rounded-md" />
+            <SkeletonBlock className="h-4 w-44 rounded-md" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex h-48 items-center justify-center">
+              <SkeletonBlock className="size-32 rounded-full" />
+            </div>
+            <div className="mt-3 flex flex-wrap justify-center gap-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <SkeletonBlock className="size-2.5 rounded-full" />
+                  <SkeletonBlock className="h-3 w-20 rounded-md" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+    </div>
+  );
+}
+
+/*  Scroll Animation Wrapper  */
 function ScrollReveal({
   children,
   delay = 0,
@@ -94,7 +179,7 @@ function ScrollReveal({
   );
 }
 
-/* ─── Stat Card ─── */
+/* Stat Card */
 function StatCard({
   icon: Icon,
   label,
@@ -134,8 +219,29 @@ function StatCard({
   );
 }
 
-/* ─── Dashboard ─── */
+/* Dashboard  */
 export default function Dashboard() {
+  const dashboardQuery = useQuery({
+    queryKey: ["dashboard"],
+    queryFn: fetchDashboard,
+  });
+
+  if (dashboardQuery.isLoading) {
+    return <DashboardSkeleton />;
+  }
+
+  if (dashboardQuery.isError || !dashboardQuery.data) {
+    return (
+      <div className="p-4 md:p-6">
+        <div className="rounded-2xl border border-dashed border-rose-200 px-5 py-12 text-center text-sm text-rose-500 dark:border-rose-900 dark:text-rose-300">
+          Could not load dashboard data from the API. Start the Express server and try again.
+        </div>
+      </div>
+    );
+  }
+
+  const dashboard = dashboardQuery.data;
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
@@ -153,16 +259,16 @@ export default function Dashboard() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <ScrollReveal delay={0.05}>
-          <StatCard icon={FolderOpen} label="Total Projects" value="34" change="+12%" />
+          <StatCard icon={FolderOpen} label="Total Projects" value={`${dashboard.stats.totalProjects}`} change="+12%" />
         </ScrollReveal>
         <ScrollReveal delay={0.1}>
-          <StatCard icon={Wrench} label="Active" value="9" change="+2" />
+          <StatCard icon={Wrench} label="Active" value={`${dashboard.stats.active}`} change="+2" />
         </ScrollReveal>
         <ScrollReveal delay={0.15}>
-          <StatCard icon={TrendingUp} label="Upcoming" value="5" change="+1" />
+          <StatCard icon={TrendingUp} label="Upcoming" value={`${dashboard.stats.upcoming}`} change="+1" />
         </ScrollReveal>
         <ScrollReveal delay={0.2}>
-          <StatCard icon={CheckCircle2} label="Completed" value="18" change="+4" />
+          <StatCard icon={CheckCircle2} label="Completed" value={`${dashboard.stats.completed}`} change="+4" />
         </ScrollReveal>
       </div>
 
@@ -183,7 +289,7 @@ export default function Dashboard() {
               <CardContent>
                 <div className="h-60">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={trendData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                    <AreaChart data={dashboard.trendData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorProjects" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
@@ -225,7 +331,7 @@ export default function Dashboard() {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={statusData}
+                        data={dashboard.statusData}
                         cx="50%"
                         cy="50%"
                         innerRadius={50}
@@ -234,7 +340,7 @@ export default function Dashboard() {
                         dataKey="value"
                         stroke="none"
                       >
-                        {statusData.map((entry, index) => (
+                        {dashboard.statusData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
@@ -243,7 +349,7 @@ export default function Dashboard() {
                   </ResponsiveContainer>
                 </div>
                 <div className="flex flex-wrap gap-3 justify-center mt-3">
-                  {statusData.map((s) => (
+                  {dashboard.statusData.map((s) => (
                     <div key={s.name} className="flex items-center gap-1.5">
                       <span className="size-2.5 rounded-full" style={{ backgroundColor: s.color }} />
                       <span className="text-xs trykker-regular text-slate-600 dark:text-slate-300">
@@ -273,7 +379,7 @@ export default function Dashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {recentProjects.map((project) => (
+                {dashboard.recentProjects.map((project) => (
                   <motion.div
                     key={project.name}
                     whileHover={{ x: 4 }}
@@ -329,16 +435,20 @@ export default function Dashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {resourceData.map((r) => {
-                  const Icon = r.icon;
+                {dashboard.resourceData.map((r) => {
+                  const meta = resourceMeta[r.name];
+                  if (!meta) {
+                    return null;
+                  }
+                  const Icon = meta.icon;
                   return (
                     <motion.div
                       key={r.name}
                       className="flex items-center justify-between p-3 rounded-xl border border-slate-200/80 bg-slate-50 dark:border-slate-700/90 dark:bg-slate-800/40 cursor-default"
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`flex items-center justify-center size-9 rounded-lg ${r.bg} group-hover/card:!bg-blue-600 group-hover/card:!text-white dark:group-hover/card:!bg-blue-500 transition-colors duration-300`}>
-                          <Icon className={`size-4 ${r.color} group-hover/card:!text-white transition-colors duration-300`} />
+                        <div className={`flex items-center justify-center size-9 rounded-lg ${meta.bg} group-hover/card:!bg-blue-600 group-hover/card:!text-white dark:group-hover/card:!bg-blue-500 transition-colors duration-300`}>
+                          <Icon className={`size-4 ${meta.color} group-hover/card:!text-white transition-colors duration-300`} />
                         </div>
                         <span className="text-sm text-slate-700 dark:text-slate-200 trykker-regular">
                           {r.name}
@@ -360,7 +470,7 @@ export default function Dashboard() {
 
                 <div className="pt-2 h-36">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={resourceData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                    <BarChart data={dashboard.resourceData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                       <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(148,163,184,0.1)" }} />
