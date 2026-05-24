@@ -40,7 +40,6 @@ type Server = {
   websites: number;
   status: string;
   statusDetail: string;
-  active: "Active";
   domains: string[];
 };
 
@@ -181,7 +180,7 @@ let domains: Domain[] = [
   },
 ];
 
-const servers: Server[] = [
+let servers: Server[] = [
   {
     id: 1,
     name: "Agni Server",
@@ -190,7 +189,6 @@ const servers: Server[] = [
     websites: 8,
     status: "Active",
     statusDetail: "Server running",
-    active: "Active",
     domains: [
       "ainaatv.com",
       "damaruresources.com",
@@ -210,7 +208,6 @@ const servers: Server[] = [
     websites: 1,
     status: "Active",
     statusDetail: "Server running",
-    active: "Active",
     domains: ["ekathas.com"],
   },
 ];
@@ -432,6 +429,75 @@ app.put("/api/projects/:id", (req: Request, res: Response) => {
 
   projects = projects.map((project) => (project.id === projectId ? updatedProject : project));
   res.json(updatedProject);
+});
+
+app.delete("/api/projects/:id", (req: Request, res: Response) => {
+  const projectId = Number(req.params.id);
+  const exists = projects.some((project) => project.id === projectId);
+
+  if (!exists) {
+    res.status(404).json({ message: "Project not found." });
+    return;
+  }
+
+  projects = projects.filter((project) => project.id !== projectId);
+  res.json({ ok: true });
+});
+
+app.put("/api/domains/:id", (req: Request, res: Response) => {
+  const domainId = Number(req.params.id);
+  const payload = req.body as Partial<Omit<Domain, "id">>;
+  const currentDomain = domains.find((domain) => domain.id === domainId);
+
+  if (!currentDomain) {
+    res.status(404).json({ message: "Domain not found." });
+    return;
+  }
+
+  const updatedDomain: Domain = { ...currentDomain, ...payload };
+  domains = domains.map((domain) => (domain.id === domainId ? updatedDomain : domain));
+  res.json(updatedDomain);
+});
+
+app.delete("/api/domains/:id", (req: Request, res: Response) => {
+  const domainId = Number(req.params.id);
+  const exists = domains.some((domain) => domain.id === domainId);
+
+  if (!exists) {
+    res.status(404).json({ message: "Domain not found." });
+    return;
+  }
+
+  domains = domains.filter((domain) => domain.id !== domainId);
+  res.json({ ok: true });
+});
+
+app.put("/api/servers/:id", (req: Request, res: Response) => {
+  const serverId = Number(req.params.id);
+  const payload = req.body as Partial<Omit<Server, "id">>;
+  const currentServer = servers.find((server) => server.id === serverId);
+
+  if (!currentServer) {
+    res.status(404).json({ message: "Server not found." });
+    return;
+  }
+
+  const updatedServer: Server = { ...currentServer, ...payload };
+  servers = servers.map((server) => (server.id === serverId ? updatedServer : server));
+  res.json(updatedServer);
+});
+
+app.delete("/api/servers/:id", (req: Request, res: Response) => {
+  const serverId = Number(req.params.id);
+  const exists = servers.some((server) => server.id === serverId);
+
+  if (!exists) {
+    res.status(404).json({ message: "Server not found." });
+    return;
+  }
+
+  servers = servers.filter((server) => server.id !== serverId);
+  res.json({ ok: true });
 });
 
 app.listen(port, () => {

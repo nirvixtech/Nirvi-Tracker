@@ -208,7 +208,7 @@ export default function Servers() {
                         </td>
                         <td className="px-2 py-4">
                           <span className="inline-flex rounded-xl bg-emerald-100 px-4 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
-                            {server.active}
+                            {server.status}
                           </span>
                         </td>
                       </tr>
