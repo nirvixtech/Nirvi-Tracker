@@ -2,17 +2,28 @@ import { AnimatePresence, motion, type Variants } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronDown,
+  Eye,
   FolderPlus,
   MoreHorizontal,
   Pencil,
-  Eye,
   Search,
   Shield,
+  Trash2,
   UserRound,
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -33,7 +44,10 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import {
   createProject,
+  deleteProject,
   fetchProjects,
+  roleColors,
+  statusColors,
   type Project,
   type ProjectFormData,
   type ProjectRole,
@@ -76,17 +90,6 @@ const defaultFormData: ProjectFormData = {
 
 const emptyProjects: Project[] = [];
 
-const statusColors: Record<ProjectStatus, string> = {
-  Active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
-  Completed: "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
-  Upcoming: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
-  "On Hold": "bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300",
-};
-
-const roleColors: Record<ProjectRole, string> = {
-  Admin: "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900",
-  Manager: "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
-};
 
 const inputClassName =
   "border-slate-200/80 bg-white shadow-none dark:border-slate-700 dark:bg-slate-950 focus-visible:ring-1 focus-visible:ring-blue-500/30 focus-visible:border-blue-400/50";
@@ -729,6 +732,7 @@ export default function Projects() {
   const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
   const [modalTitle, setModalTitle] = useState("Create New Project");
   const [formData, setFormData] = useState<ProjectFormData>(defaultFormData);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const projectsQuery = useQuery({
     queryKey: ["projects"],
@@ -748,6 +752,13 @@ export default function Projects() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["projects"] });
       closeModal();
+    },
+  });
+
+  const deleteProjectMutation = useMutation({
+    mutationFn: deleteProject,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
   });
 
@@ -836,7 +847,6 @@ export default function Projects() {
     mode: "edit" | "view" = "edit"
   ) => {
     const { id, updatedAt: _updatedAt, ...rest } = project;
-    void _updatedAt;
 
     setModalMode(mode);
     setEditingProjectId(id);
@@ -930,6 +940,8 @@ export default function Projects() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
                 <Input
                   type="text"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Search projects, clients, domains, servers..."
                   className="h-10 w-full rounded-lg bg-slate-50 dark:bg-slate-800 border-slate-200/80 dark:border-slate-700 pl-9 pr-4 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:ring-1 focus-visible:ring-blue-500/30 focus-visible:border-blue-400/50"
                 />
@@ -1054,15 +1066,13 @@ export default function Projects() {
                           <td className="px-5 py-4 text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.96 }}>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="ml-auto cursor-pointer rounded-xl border border-slate-200/80 text-slate-600 shadow-sm hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                                  >
-                                    <MoreHorizontal className="size-4" />
-                                  </Button>
-                                </motion.div>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="ml-auto cursor-pointer rounded-xl border border-slate-200/80 text-slate-600 shadow-sm hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                                >
+                                  <MoreHorizontal className="size-4" />
+                                </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent
                                 align="end"
@@ -1081,6 +1091,13 @@ export default function Projects() {
                                 >
                                   <Pencil className="size-4" />
                                   Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="cursor-pointer text-rose-600 focus:text-rose-600"
+                                  onSelect={(e) => { e.preventDefault(); setDeleteId(project.id); }}
+                                >
+                                  <Trash2 className="size-4" />
+                                  Delete
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -1114,6 +1131,26 @@ export default function Projects() {
         onChange={updateFormField}
         onToggleMember={toggleMember}
       />
+
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{projects.find((p) => p.id === deleteId)?.name}</strong> will be permanently removed. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+              onClick={() => deleteId !== null && deleteProjectMutation.mutate(deleteId)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div >
   );
 }

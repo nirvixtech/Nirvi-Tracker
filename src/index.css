@@ -6,6 +6,39 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+:root {
+  --accent: oklch(96.8% 0.007 247.896);
+  --accent-foreground: oklch(20.8% 0.042 265.755);
+  --popover: #ffffff;
+  --popover-foreground: oklch(20.8% 0.042 265.755);
+  --muted: oklch(96.8% 0.007 247.896);
+  --muted-foreground: oklch(55.4% 0.046 257.417);
+  --border: oklch(92.9% 0.013 255.508);
+  --destructive: oklch(57.7% 0.245 27.325);
+}
+
+.dark {
+  --accent: oklch(27.9% 0.041 260.031);
+  --accent-foreground: oklch(96.8% 0.007 247.896);
+  --popover: oklch(20.8% 0.042 265.755);
+  --popover-foreground: oklch(96.8% 0.007 247.896);
+  --muted: oklch(27.9% 0.041 260.031);
+  --muted-foreground: oklch(70.4% 0.04 256.788);
+  --border: oklch(37.2% 0.044 257.287);
+  --destructive: oklch(63.7% 0.237 25.331);
+}
+
+@theme inline {
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+}
+
 @theme {
   --color-slate-850: #151e2e;
   --color-slate-900: #0f172a;
