@@ -1144,7 +1144,7 @@ export default function Projects() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-rose-600 hover:bg-rose-700 text-white"
-              onClick={() => deleteId !== null && deleteProjectMutation.mutate(deleteId)}
+              onClick={() => deleteProjectMutation.mutate(deleteId!)}
             >
               Delete
             </AlertDialogAction>

@@ -440,6 +440,7 @@ export default function Domains() {
     mutationFn: deleteDomain,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["domains"] });
+      setDeleteId(null);
     },
   });
 
@@ -760,7 +761,7 @@ export default function Domains() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-rose-600 hover:bg-rose-700 text-white"
-              onClick={() => deleteId !== null && deleteDomainMutation.mutate(deleteId)}
+              onClick={() => deleteDomainMutation.mutate(deleteId!)}
             >
               Delete
             </AlertDialogAction>

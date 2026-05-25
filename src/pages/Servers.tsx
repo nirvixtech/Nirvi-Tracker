@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ExternalLink, MoreHorizontal, Pencil, Server, Trash2, X } from "lucide-react";
+import { ExternalLink, FolderPlus, MoreHorizontal, Pencil, Server, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -23,7 +23,7 @@ import {
 } from "../components/ui/dropdown-menu";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { deleteServer, fetchServers, updateServer, type Server as ServerRow } from "../lib/api";
+import { createServer, deleteServer, fetchServers, updateServer, type Server as ServerRow } from "../lib/api";
 
 function ShadowCard({
   children,
@@ -56,10 +56,13 @@ function ServersSkeleton() {
 
       {/* ShadowCard */}
       <div className="rounded-[20px] bg-white shadow-[0_12px_36px_rgba(15,23,42,0.06)] dark:bg-slate-900 dark:shadow-[0_18px_46px_rgba(2,6,23,0.32)] p-6 space-y-5">
-        {/* Subheader: icon + "Live Server List" */}
-        <div className="flex items-center gap-3">
-          <SkeletonBlock className="h-8 w-8 rounded-lg" />
-          <SkeletonBlock className="h-6 w-40 rounded-lg" />
+        {/* Subheader: icon + "Live Server List" + Add button */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <SkeletonBlock className="h-8 w-8 rounded-lg" />
+            <SkeletonBlock className="h-6 w-40 rounded-lg" />
+          </div>
+          <SkeletonBlock className="h-9 w-32 rounded-lg" />
         </div>
 
         {/* Table — px-2 py-4 matches real cell padding */}
@@ -127,12 +130,14 @@ const inputClassName =
 function ServerModal({
   isOpen,
   formData,
+  title,
   onClose,
   onSubmit,
   onChange,
 }: {
   isOpen: boolean;
   formData: ServerFormData;
+  title: string;
   onClose: () => void;
   onSubmit: () => void;
   onChange: <K extends keyof ServerFormData>(field: K, value: ServerFormData[K]) => void;
@@ -159,10 +164,10 @@ function ServerModal({
             <div className="flex items-start justify-between border-b border-slate-200/80 px-6 py-5 dark:border-slate-800">
               <div className="space-y-1">
                 <h2 className="text-xl calistoga-regular text-slate-900 dark:text-slate-100">
-                  Edit Server
+                  {title}
                 </h2>
                 <p className="text-sm trykker-regular text-slate-500 dark:text-slate-400">
-                  Update the server details, IP address, and linked domains.
+                  {title === "Add Server" ? "Add a new server with its IP address and linked domains." : "Update the server details, IP address, and linked domains."}
                 </p>
               </div>
               <button
@@ -312,9 +317,18 @@ export default function Servers() {
   const [selectedServer, setSelectedServer] = useState<ServerRow | null>(null);
   const [editingServerId, setEditingServerId] = useState<number | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState("Add Server");
   const [serverFormData, setServerFormData] = useState<ServerFormData>(defaultServerFormData);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const servers = serversQuery.data ?? [];
+
+  const createServerMutation = useMutation({
+    mutationFn: createServer,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["servers"] });
+      closeEditModal();
+    },
+  });
 
   const updateServerMutation = useMutation({
     mutationFn: updateServer,
@@ -328,11 +342,20 @@ export default function Servers() {
     mutationFn: deleteServer,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["servers"] });
+      setDeleteId(null);
     },
   });
 
+  const openCreateModal = () => {
+    setEditingServerId(null);
+    setModalTitle("Add Server");
+    setServerFormData(defaultServerFormData);
+    setIsEditModalOpen(true);
+  };
+
   const openEditModal = (server: ServerRow) => {
     setEditingServerId(server.id);
+    setModalTitle("Edit Server");
     setServerFormData({
       name: server.name,
       type: server.type,
@@ -348,6 +371,7 @@ export default function Servers() {
   const closeEditModal = () => {
     setIsEditModalOpen(false);
     setEditingServerId(null);
+    setModalTitle("Add Server");
     setServerFormData(defaultServerFormData);
   };
 
@@ -359,27 +383,28 @@ export default function Servers() {
   };
 
   const handleSubmitServer = () => {
-    if (!serverFormData.name.trim() || editingServerId === null) {
-      return;
-    }
+    if (!serverFormData.name.trim()) return;
 
     const domainsArray = serverFormData.domains
       .split(",")
       .map((d) => d.trim())
       .filter(Boolean);
 
-    updateServerMutation.mutate({
-      id: editingServerId,
-      server: {
-        name: serverFormData.name.trim(),
-        type: serverFormData.type.trim(),
-        ipAddress: serverFormData.ipAddress.trim(),
-        websites: Number(serverFormData.websites) || 0,
-        status: serverFormData.status.trim(),
-        statusDetail: serverFormData.statusDetail.trim(),
-        domains: domainsArray,
-      },
-    });
+    const serverPayload = {
+      name: serverFormData.name.trim(),
+      type: serverFormData.type.trim(),
+      ipAddress: serverFormData.ipAddress.trim(),
+      websites: Number(serverFormData.websites) || 0,
+      status: serverFormData.status.trim(),
+      statusDetail: serverFormData.statusDetail.trim(),
+      domains: domainsArray,
+    };
+
+    if (editingServerId !== null) {
+      updateServerMutation.mutate({ id: editingServerId, server: serverPayload });
+    } else {
+      createServerMutation.mutate(serverPayload);
+    }
   };
 
   if (isLoading) {
@@ -421,13 +446,24 @@ export default function Servers() {
       >
         <ShadowCard className="overflow-hidden rounded-[20px]">
           <CardContent className="p-6">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="rounded-lg bg-slate-100 p-2 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                <Server className="size-4" />
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-slate-100 p-2 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                  <Server className="size-4" />
+                </div>
+                <h2 className="text-xl calistoga-regular text-slate-900 dark:text-slate-100">
+                  Live Server List
+                </h2>
               </div>
-              <h2 className="text-xl calistoga-regular text-slate-900 dark:text-slate-100">
-                Live Server List
-              </h2>
+              <motion.div whileHover={{ y: -2, scale: 1.01 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  className="cursor-pointer rounded-lg border-slate-200/80 bg-slate-50 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  onClick={openCreateModal}
+                >
+                  <FolderPlus className="size-4" />
+                  Add Server
+                </Button>
+              </motion.div>
             </div>
 
             <div className="overflow-x-auto">
@@ -595,6 +631,7 @@ export default function Servers() {
       <ServerModal
         isOpen={isEditModalOpen}
         formData={serverFormData}
+        title={modalTitle}
         onClose={closeEditModal}
         onSubmit={handleSubmitServer}
         onChange={handleServerFormChange}
@@ -612,7 +649,7 @@ export default function Servers() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-rose-600 hover:bg-rose-700 text-white"
-              onClick={() => deleteId !== null && deleteServerMutation.mutate(deleteId)}
+              onClick={() => deleteServerMutation.mutate(deleteId!)}
             >
               Delete
             </AlertDialogAction>

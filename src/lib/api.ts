@@ -180,6 +180,14 @@ export function fetchServers() {
   return fetchJson<Server[]>("/api/servers");
 }
 
+export function createServer(server: Omit<Server, "id">) {
+  return fetchJson<Server>("/api/servers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(server),
+  });
+}
+
 export function updateServer({ id, server }: { id: number; server: Omit<Server, "id"> }) {
   return fetchJson<Server>(`/api/servers/${id}`, {
     method: "PUT",

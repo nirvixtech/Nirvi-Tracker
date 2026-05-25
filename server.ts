@@ -472,6 +472,29 @@ app.delete("/api/domains/:id", (req: Request, res: Response) => {
   res.json({ ok: true });
 });
 
+app.post("/api/servers", (req: Request, res: Response) => {
+  const payload = req.body as Partial<Omit<Server, "id">>;
+
+  if (!payload.name || !payload.ipAddress) {
+    res.status(400).json({ message: "Missing required server fields." });
+    return;
+  }
+
+  const server: Server = {
+    id: Date.now(),
+    name: payload.name,
+    type: payload.type ?? "Server",
+    ipAddress: payload.ipAddress,
+    websites: payload.websites ?? 0,
+    status: payload.status ?? "Active",
+    statusDetail: payload.statusDetail ?? "",
+    domains: Array.isArray(payload.domains) ? payload.domains : [],
+  };
+
+  servers = [server, ...servers];
+  res.status(201).json(server);
+});
+
 app.put("/api/servers/:id", (req: Request, res: Response) => {
   const serverId = Number(req.params.id);
   const payload = req.body as Partial<Omit<Server, "id">>;
