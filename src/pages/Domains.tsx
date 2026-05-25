@@ -1,23 +1,32 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, ChevronDown, ExternalLink, FolderPlus, Search, X } from "lucide-react";
+import { AlertTriangle, ChevronDown, ExternalLink, FolderPlus, MoreHorizontal, Pencil, Search, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { createDomain, fetchDomains, type Domain as ApiDomain } from "../lib/api";
+import { createDomain, deleteDomain, fetchDomains, updateDomain, type DeliveryStatus, type Domain as ApiDomain } from "../lib/api";
 import { cn } from "../lib/utils";
-
-type DeliveryStatus = "Active" | "Terminated" | "Delivered";
 
 type DomainRow = ApiDomain & {
   renewalDate: string | null;
@@ -104,8 +113,8 @@ function DomainsSkeleton() {
 
           {/* Inner table container */}
           <div className="overflow-hidden rounded-[22px] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)] dark:bg-slate-900">
-            <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              <table className="min-w-[1120px] w-full text-left">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
                 <thead className="bg-slate-50/85 dark:bg-slate-950/80">
                   <tr className="border-b border-slate-200/80 dark:border-slate-800/80">
                     <th className="px-5 py-4"><SkeletonBlock className="h-3 w-16 rounded-md" /></th>
@@ -113,6 +122,7 @@ function DomainsSkeleton() {
                     <th className="px-5 py-4"><SkeletonBlock className="h-3 w-24 rounded-md" /></th>
                     <th className="px-5 py-4"><SkeletonBlock className="h-3 w-28 rounded-md" /></th>
                     <th className="px-5 py-4"><SkeletonBlock className="h-3 w-12 rounded-md" /></th>
+                    <th className="px-5 py-4"><SkeletonBlock className="h-3 w-16 rounded-md" /></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200/70 dark:divide-slate-800/80">
@@ -128,6 +138,7 @@ function DomainsSkeleton() {
                         </div>
                       </td>
                       <td className="px-5 py-4"><SkeletonBlock className="h-6 w-20 rounded-full" /></td>
+                      <td className="px-5 py-4"><SkeletonBlock className="h-8 w-8 rounded-xl" /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -138,7 +149,9 @@ function DomainsSkeleton() {
       </div>
     </div>
   );
-}function formatRenewalDate(value: string | null) {
+}
+
+function formatRenewalDate(value: string | null) {
   if (!value) {
     return null;
   }
@@ -229,12 +242,14 @@ function FilterDropdown({
 function DomainModal({
   isOpen,
   formData,
+  title,
   onClose,
   onSubmit,
   onChange,
 }: {
   isOpen: boolean;
   formData: DomainFormData;
+  title: string;
   onClose: () => void;
   onSubmit: () => void;
   onChange: <K extends keyof DomainFormData>(field: K, value: DomainFormData[K]) => void;
@@ -261,7 +276,7 @@ function DomainModal({
             <div className="flex items-start justify-between border-b border-slate-200/80 px-6 py-5 dark:border-slate-800">
               <div className="space-y-1">
                 <h2 className="text-xl calistoga-regular text-slate-900 dark:text-slate-100">
-                  Add New Domain
+                  {title}
                 </h2>
                 <p className="text-sm trykker-regular text-slate-500 dark:text-slate-400">
                   Add a domain with its URL, renewal date, and delivery status.
@@ -398,14 +413,34 @@ export default function Domains() {
     queryFn: fetchDomains,
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingDomainId, setEditingDomainId] = useState<number | null>(null);
+  const [modalTitle, setModalTitle] = useState("Add New Domain");
   const [formData, setFormData] = useState(defaultFormData);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<DeliveryStatus | "All">("All");
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
   const createDomainMutation = useMutation({
     mutationFn: createDomain,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["domains"] });
       closeModal();
+    },
+  });
+
+  const updateDomainMutation = useMutation({
+    mutationFn: updateDomain,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["domains"] });
+      closeModal();
+    },
+  });
+
+  const deleteDomainMutation = useMutation({
+    mutationFn: deleteDomain,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["domains"] });
+      setDeleteId(null);
     },
   });
 
@@ -431,12 +466,28 @@ export default function Domains() {
   }, [domainRows, searchTerm, statusFilter]);
 
   const openCreateModal = () => {
+    setEditingDomainId(null);
+    setModalTitle("Add New Domain");
     setFormData(defaultFormData);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (domain: DomainRow) => {
+    setEditingDomainId(domain.id);
+    setModalTitle("Edit Domain");
+    setFormData({
+      domain: domain.domain,
+      url: domain.url,
+      renewalDate: domain.renewalDate ?? "",
+      status: domain.status,
+    });
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
+    setEditingDomainId(null);
+    setModalTitle("Add New Domain");
     setFormData(defaultFormData);
   };
 
@@ -450,7 +501,7 @@ export default function Domains() {
     }));
   };
 
-  const handleCreateDomain = () => {
+  const handleSubmitDomain = () => {
     const normalizedDomain = formData.domain.trim();
     const normalizedUrl = formData.url.trim();
 
@@ -458,12 +509,18 @@ export default function Domains() {
       return;
     }
 
-    createDomainMutation.mutate({
+    const payload = {
       domain: normalizedDomain,
       url: normalizedUrl,
       renewalDate: formData.renewalDate,
       status: formData.status,
-    });
+    };
+
+    if (editingDomainId !== null) {
+      updateDomainMutation.mutate({ id: editingDomainId, domain: payload });
+    } else {
+      createDomainMutation.mutate(payload);
+    }
   };
 
   if (isLoading) {
@@ -542,14 +599,15 @@ export default function Domains() {
 
             <div className="overflow-hidden rounded-[22px] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)] dark:bg-slate-900">
               <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                <table className="min-w-[1120px] w-full text-left">
+                <table className="min-w-[860px] w-full text-left">
                   <thead className="bg-slate-50/85 text-sm text-slate-500 dark:bg-slate-950/80 dark:text-slate-400">
                     <tr className="border-b border-slate-200/80 dark:border-slate-800/80">
-                      <th className="px-5 py-4 font-medium">Domain</th>
-                      <th className="px-5 py-4 font-medium">URL</th>
-                      <th className="px-5 py-4 font-medium">Renewal Date</th>
-                      <th className="px-5 py-4 font-medium">Days Remaining</th>
-                      <th className="px-5 py-4 font-medium">Status</th>
+                      <th className="px-5 py-4 font-medium whitespace-nowrap">Domain</th>
+                      <th className="px-5 py-4 font-medium whitespace-nowrap">URL</th>
+                      <th className="px-5 py-4 font-medium whitespace-nowrap">Renewal Date</th>
+                      <th className="px-5 py-4 font-medium whitespace-nowrap">Days Remaining</th>
+                      <th className="px-5 py-4 font-medium whitespace-nowrap">Status</th>
+                      <th className="px-5 py-4 text-right font-medium whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200/70 dark:divide-slate-800/80">
@@ -571,12 +629,12 @@ export default function Domains() {
                           key={domain.id}
                           className={`transition-colors ${rowClassName}`}
                         >
-                          <td className={`px-5 py-4 ${cellClassName}`}>
+                          <td className={`px-5 py-4 whitespace-nowrap ${cellClassName}`}>
                             <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
                               {domain.domain}
                             </p>
                           </td>
-                          <td className={`px-5 py-4 ${cellClassName}`}>
+                          <td className={`px-5 py-4 whitespace-nowrap ${cellClassName}`}>
                             <a
                               href={domain.url}
                               target="_blank"
@@ -587,10 +645,10 @@ export default function Domains() {
                               <ExternalLink className="size-3.5" />
                             </a>
                           </td>
-                          <td className={`px-5 py-4 ${cellClassName} text-sm text-slate-800 dark:text-slate-200`}>
+                          <td className={`px-5 py-4 whitespace-nowrap ${cellClassName} text-sm text-slate-800 dark:text-slate-200`}>
                             {domain.renewalLabel ?? formatRenewalDate(domain.renewalDate)}
                           </td>
-                          <td className={`px-5 py-4 ${cellClassName}`}>
+                          <td className={`px-5 py-4 whitespace-nowrap ${cellClassName}`}>
                             <div className="space-y-2">
                               <div
                                 className={[
@@ -616,7 +674,7 @@ export default function Domains() {
                               </div>
                             </div>
                           </td>
-                          <td className={`px-5 py-4 ${cellClassName}`}>
+                          <td className={`px-5 py-4 whitespace-nowrap ${cellClassName}`}>
                             <span
                               className={[
                                 "inline-flex rounded-xl px-3 py-1 text-xs font-medium",
@@ -630,12 +688,44 @@ export default function Domains() {
                               {domain.status}
                             </span>
                           </td>
+                          <td className={`px-5 py-4 text-right whitespace-nowrap ${cellClassName}`}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="ml-auto cursor-pointer rounded-xl border border-slate-200/80 text-slate-600 shadow-sm hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                                >
+                                  <MoreHorizontal className="size-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                className="w-36 rounded-xl border-0 ring-0 bg-white p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.14)] dark:bg-slate-900 dark:shadow-[0_18px_40px_rgba(2,6,23,0.42)]"
+                              >
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onClick={() => openEditModal(domain)}
+                                >
+                                  <Pencil className="size-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="cursor-pointer text-rose-600 focus:text-rose-600"
+                                  onSelect={(e) => { e.preventDefault(); setDeleteId(domain.id); }}
+                                >
+                                  <Trash2 className="size-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
                         </tr>
                       );
                     }) : (
                       <tr className="bg-white dark:bg-slate-900">
                         <td
-                          colSpan={5}
+                          colSpan={6}
                           className="px-5 py-12 text-center text-sm text-slate-500 dark:text-slate-400"
                         >
                           No domains match the current search or status filter.
@@ -653,10 +743,31 @@ export default function Domains() {
       <DomainModal
         isOpen={isModalOpen}
         formData={formData}
+        title={modalTitle}
         onClose={closeModal}
-        onSubmit={handleCreateDomain}
+        onSubmit={handleSubmitDomain}
         onChange={handleFormChange}
       />
+
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete domain?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{domainRows.find((d) => d.id === deleteId)?.domain}</strong> will be permanently removed. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+              onClick={() => deleteDomainMutation.mutate(deleteId!)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

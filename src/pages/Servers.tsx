@@ -1,10 +1,29 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ExternalLink, Server, X } from "lucide-react";
+import { ExternalLink, FolderPlus, MoreHorizontal, Pencil, Server, Trash2, X } from "lucide-react";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
+import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
-import { fetchServers, type Server as ServerRow } from "../lib/api";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { createServer, deleteServer, fetchServers, updateServer, type Server as ServerRow } from "../lib/api";
 
 function ShadowCard({
   children,
@@ -37,15 +56,18 @@ function ServersSkeleton() {
 
       {/* ShadowCard */}
       <div className="rounded-[20px] bg-white shadow-[0_12px_36px_rgba(15,23,42,0.06)] dark:bg-slate-900 dark:shadow-[0_18px_46px_rgba(2,6,23,0.32)] p-6 space-y-5">
-        {/* Subheader: icon + "Live Server List" */}
-        <div className="flex items-center gap-3">
-          <SkeletonBlock className="h-8 w-8 rounded-lg" />
-          <SkeletonBlock className="h-6 w-40 rounded-lg" />
+        {/* Subheader: icon + "Live Server List" + Add button */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <SkeletonBlock className="h-8 w-8 rounded-lg" />
+            <SkeletonBlock className="h-6 w-40 rounded-lg" />
+          </div>
+          <SkeletonBlock className="h-9 w-32 rounded-lg" />
         </div>
 
         {/* Table — px-2 py-4 matches real cell padding */}
-        <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <table className="min-w-[1020px] w-full text-left">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-200/80 dark:border-slate-800/80">
                 <th className="px-2 py-4"><SkeletonBlock className="h-3 w-24 rounded-md" /></th>
@@ -54,8 +76,7 @@ function ServersSkeleton() {
                 <th className="px-2 py-4"><SkeletonBlock className="h-3 w-16 rounded-md" /></th>
                 <th className="px-2 py-4"><SkeletonBlock className="h-3 w-16 rounded-md" /></th>
                 <th className="px-2 py-4"><SkeletonBlock className="h-3 w-12 rounded-md" /></th>
-                <th className="px-2 py-4"><SkeletonBlock className="h-3 w-20 rounded-md" /></th>
-                <th className="px-2 py-4"><SkeletonBlock className="h-3 w-12 rounded-md" /></th>
+                <th className="px-2 py-4"><SkeletonBlock className="h-3 w-16 rounded-md" /></th>
               </tr>
             </thead>
             <tbody>
@@ -72,8 +93,7 @@ function ServersSkeleton() {
                       <SkeletonBlock className="h-3 w-24 rounded-md" />
                     </div>
                   </td>
-                  <td className="px-2 py-4"><SkeletonBlock className="h-4 w-20 rounded-md" /></td>
-                  <td className="px-2 py-4"><SkeletonBlock className="h-7 w-14 rounded-xl" /></td>
+                  <td className="px-2 py-4"><SkeletonBlock className="h-8 w-36 rounded-lg" /></td>
                 </tr>
               ))}
             </tbody>
@@ -84,7 +104,210 @@ function ServersSkeleton() {
   );
 }
 
+type ServerFormData = {
+  name: string;
+  type: string;
+  ipAddress: string;
+  websites: string;
+  status: string;
+  statusDetail: string;
+  domains: string;
+};
+
+const defaultServerFormData: ServerFormData = {
+  name: "",
+  type: "",
+  ipAddress: "",
+  websites: "",
+  status: "Active",
+  statusDetail: "",
+  domains: "",
+};
+
+const inputClassName =
+  "h-11 rounded-xl border-slate-200/80 bg-white text-slate-800 shadow-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 focus-visible:ring-1 focus-visible:ring-blue-500/30 focus-visible:border-blue-400/50";
+
+function ServerModal({
+  isOpen,
+  formData,
+  title,
+  onClose,
+  onSubmit,
+  onChange,
+}: {
+  isOpen: boolean;
+  formData: ServerFormData;
+  title: string;
+  onClose: () => void;
+  onSubmit: () => void;
+  onChange: <K extends keyof ServerFormData>(field: K, value: ServerFormData[K]) => void;
+}) {
+  return (
+    <AnimatePresence>
+      {isOpen ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm md:p-6"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="w-full max-w-2xl rounded-[24px] bg-white shadow-[0_30px_90px_rgba(15,23,42,0.28)] dark:bg-slate-900 dark:shadow-[0_34px_90px_rgba(2,6,23,0.72)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between border-b border-slate-200/80 px-6 py-5 dark:border-slate-800">
+              <div className="space-y-1">
+                <h2 className="text-xl calistoga-regular text-slate-900 dark:text-slate-100">
+                  {title}
+                </h2>
+                <p className="text-sm trykker-regular text-slate-500 dark:text-slate-400">
+                  {title === "Add Server" ? "Add a new server with its IP address and linked domains." : "Update the server details, IP address, and linked domains."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <form
+              className="space-y-5 px-6 py-6"
+              onSubmit={(event) => {
+                event.preventDefault();
+                onSubmit();
+              }}
+            >
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="server-name" className="text-slate-700 dark:text-slate-200">
+                    Server Name
+                  </Label>
+                  <Input
+                    id="server-name"
+                    value={formData.name}
+                    onChange={(event) => onChange("name", event.target.value)}
+                    placeholder="Agni Server"
+                    className={inputClassName}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="server-type" className="text-slate-700 dark:text-slate-200">
+                    Type
+                  </Label>
+                  <Input
+                    id="server-type"
+                    value={formData.type}
+                    onChange={(event) => onChange("type", event.target.value)}
+                    placeholder="Server"
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="server-ip" className="text-slate-700 dark:text-slate-200">
+                    IP Address
+                  </Label>
+                  <Input
+                    id="server-ip"
+                    value={formData.ipAddress}
+                    onChange={(event) => onChange("ipAddress", event.target.value)}
+                    placeholder="135.181.141.188"
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="server-websites" className="text-slate-700 dark:text-slate-200">
+                    Websites
+                  </Label>
+                  <Input
+                    id="server-websites"
+                    type="number"
+                    min={0}
+                    value={formData.websites}
+                    onChange={(event) => onChange("websites", event.target.value)}
+                    placeholder="8"
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="server-status" className="text-slate-700 dark:text-slate-200">
+                    Status
+                  </Label>
+                  <Input
+                    id="server-status"
+                    value={formData.status}
+                    onChange={(event) => onChange("status", event.target.value)}
+                    placeholder="Active"
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="server-status-detail" className="text-slate-700 dark:text-slate-200">
+                    Status Detail
+                  </Label>
+                  <Input
+                    id="server-status-detail"
+                    value={formData.statusDetail}
+                    onChange={(event) => onChange("statusDetail", event.target.value)}
+                    placeholder="Server running"
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="server-domains" className="text-slate-700 dark:text-slate-200">
+                    Domains (comma-separated)
+                  </Label>
+                  <Input
+                    id="server-domains"
+                    value={formData.domains}
+                    onChange={(event) => onChange("domains", event.target.value)}
+                    placeholder="example.com, another.com"
+                    className={inputClassName}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 rounded-xl border-slate-200/80 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                  onClick={onClose}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="h-11 rounded-xl bg-blue-600 px-5 text-white hover:bg-blue-700"
+                >
+                  Save Server
+                </Button>
+              </div>
+            </form>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
 export default function Servers() {
+  const queryClient = useQueryClient();
   const serversQuery = useQuery({
     queryKey: ["servers"],
     queryFn: fetchServers,
@@ -92,7 +315,97 @@ export default function Servers() {
   const isLoading = serversQuery.isLoading;
   const isError = serversQuery.isError;
   const [selectedServer, setSelectedServer] = useState<ServerRow | null>(null);
+  const [editingServerId, setEditingServerId] = useState<number | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState("Add Server");
+  const [serverFormData, setServerFormData] = useState<ServerFormData>(defaultServerFormData);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
   const servers = serversQuery.data ?? [];
+
+  const createServerMutation = useMutation({
+    mutationFn: createServer,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["servers"] });
+      closeEditModal();
+    },
+  });
+
+  const updateServerMutation = useMutation({
+    mutationFn: updateServer,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["servers"] });
+      closeEditModal();
+    },
+  });
+
+  const deleteServerMutation = useMutation({
+    mutationFn: deleteServer,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["servers"] });
+      setDeleteId(null);
+    },
+  });
+
+  const openCreateModal = () => {
+    setEditingServerId(null);
+    setModalTitle("Add Server");
+    setServerFormData(defaultServerFormData);
+    setIsEditModalOpen(true);
+  };
+
+  const openEditModal = (server: ServerRow) => {
+    setEditingServerId(server.id);
+    setModalTitle("Edit Server");
+    setServerFormData({
+      name: server.name,
+      type: server.type,
+      ipAddress: server.ipAddress,
+      websites: String(server.websites),
+      status: server.status,
+      statusDetail: server.statusDetail,
+      domains: server.domains.join(", "),
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingServerId(null);
+    setModalTitle("Add Server");
+    setServerFormData(defaultServerFormData);
+  };
+
+  const handleServerFormChange = <K extends keyof ServerFormData>(
+    field: K,
+    value: ServerFormData[K],
+  ) => {
+    setServerFormData((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSubmitServer = () => {
+    if (!serverFormData.name.trim()) return;
+
+    const domainsArray = serverFormData.domains
+      .split(",")
+      .map((d) => d.trim())
+      .filter(Boolean);
+
+    const serverPayload = {
+      name: serverFormData.name.trim(),
+      type: serverFormData.type.trim(),
+      ipAddress: serverFormData.ipAddress.trim(),
+      websites: Number(serverFormData.websites) || 0,
+      status: serverFormData.status.trim(),
+      statusDetail: serverFormData.statusDetail.trim(),
+      domains: domainsArray,
+    };
+
+    if (editingServerId !== null) {
+      updateServerMutation.mutate({ id: editingServerId, server: serverPayload });
+    } else {
+      createServerMutation.mutate(serverPayload);
+    }
+  };
 
   if (isLoading) {
     return <ServersSkeleton />;
@@ -123,7 +436,6 @@ export default function Servers() {
         <p className="mt-1 trykker-regular text-slate-500 dark:text-slate-400">
           Monitor server infrastructure and renewal dates.
         </p>
-
       </motion.div>
 
       <motion.div
@@ -134,17 +446,28 @@ export default function Servers() {
       >
         <ShadowCard className="overflow-hidden rounded-[20px]">
           <CardContent className="p-6">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="rounded-lg bg-slate-100 p-2 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                <Server className="size-4" />
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-slate-100 p-2 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                  <Server className="size-4" />
+                </div>
+                <h2 className="text-xl calistoga-regular text-slate-900 dark:text-slate-100">
+                  Live Server List
+                </h2>
               </div>
-              <h2 className="text-xl calistoga-regular text-slate-900 dark:text-slate-100">
-                Live Server List
-              </h2>
+              <motion.div whileHover={{ y: -2, scale: 1.01 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  className="cursor-pointer rounded-lg border-slate-200/80 bg-slate-50 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  onClick={openCreateModal}
+                >
+                  <FolderPlus className="size-4" />
+                  Add Server
+                </Button>
+              </motion.div>
             </div>
 
-            <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              <table className="min-w-[1020px] w-full text-left">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
                 <thead className="text-sm text-slate-500 dark:text-slate-400">
                   <tr className="border-b border-slate-200/80 dark:border-slate-800/80">
                     <th className="px-2 py-4 font-medium">Server Name</th>
@@ -153,66 +476,87 @@ export default function Servers() {
                     <th className="px-2 py-4 font-medium">Domains</th>
                     <th className="px-2 py-4 font-medium">Websites</th>
                     <th className="px-2 py-4 font-medium">Status</th>
-                    <th className="px-2 py-4 font-medium">Linked Total</th>
-                    <th className="px-2 py-4 font-medium">Active</th>
+                    <th className="px-2 py-4 text-right font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {servers.map((server) => (
-                      <tr
-                        key={server.id}
-                        className="border-b border-slate-200/70 align-top transition-colors hover:bg-slate-50/60 dark:border-slate-800/80 dark:hover:bg-slate-950/60"
-                      >
-                        <td className="px-2 py-4 text-sm font-medium text-slate-900 dark:text-slate-100">
-                          {server.name}
-                        </td>
-                        <td className="px-2 py-4">
-                          <span className="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-                            {server.type}
-                          </span>
-                        </td>
-                        <td className="px-2 py-4 text-sm tracking-[0.12em] text-slate-800 dark:text-slate-200">
-                          {server.ipAddress}
-                        </td>
-                        <td className="px-2 py-4">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedServer(server)}
-                            className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                          >
-                            <span>
-                              {server.domains.length} domain{server.domains.length > 1 ? "s" : ""}
-                            </span>
-                            <span className="text-slate-400">Inspect</span>
-                          </button>
-                        </td>
-                        <td className="px-2 py-4">
-                          <span className="inline-flex rounded-lg bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800 dark:bg-slate-800 dark:text-slate-100">
-                            {server.websites} website{server.websites > 1 ? "s" : ""}
-                          </span>
-                        </td>
-                        <td className="px-2 py-4">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                              {server.status}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              {server.statusDetail}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-2 py-4">
-                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    <tr
+                      key={server.id}
+                      className="border-b border-slate-200/70 align-top transition-colors hover:bg-slate-50/60 dark:border-slate-800/80 dark:hover:bg-slate-950/60"
+                    >
+                      <td className="px-2 py-4 text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {server.name}
+                      </td>
+                      <td className="px-2 py-4">
+                        <span className="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                          {server.type}
+                        </span>
+                      </td>
+                      <td className="px-2 py-4 text-sm tracking-[0.12em] text-slate-800 dark:text-slate-200">
+                        {server.ipAddress}
+                      </td>
+                      <td className="px-2 py-4">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedServer(server)}
+                          className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                        >
+                          <span>
                             {server.domains.length} domain{server.domains.length > 1 ? "s" : ""}
-                          </p>
-                        </td>
-                        <td className="px-2 py-4">
-                          <span className="inline-flex rounded-xl bg-emerald-100 px-4 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
-                            {server.active}
                           </span>
-                        </td>
-                      </tr>
-                    ))}
+                          <span className="text-slate-400">Inspect</span>
+                        </button>
+                      </td>
+                      <td className="px-2 py-4">
+                        <span className="inline-flex rounded-lg bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800 dark:bg-slate-800 dark:text-slate-100">
+                          {server.websites} website{server.websites > 1 ? "s" : ""}
+                        </span>
+                      </td>
+                      <td className="px-2 py-4">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                            {server.status}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {server.statusDetail}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="px-2 py-4 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="ml-auto cursor-pointer rounded-xl border border-slate-200/80 text-slate-600 shadow-sm hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                            >
+                              <MoreHorizontal className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-36 rounded-xl border-0 ring-0 bg-white p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.14)] dark:bg-slate-900 dark:shadow-[0_18px_40px_rgba(2,6,23,0.42)]"
+                          >
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              onClick={() => openEditModal(server)}
+                            >
+                              <Pencil className="size-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="cursor-pointer text-rose-600 focus:text-rose-600"
+                              onSelect={(e) => { e.preventDefault(); setDeleteId(server.id); }}
+                            >
+                              <Trash2 className="size-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -283,6 +627,35 @@ export default function Servers() {
           </motion.div>
         ) : null}
       </AnimatePresence>
+
+      <ServerModal
+        isOpen={isEditModalOpen}
+        formData={serverFormData}
+        title={modalTitle}
+        onClose={closeEditModal}
+        onSubmit={handleSubmitServer}
+        onChange={handleServerFormChange}
+      />
+
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete server?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{servers.find((s) => s.id === deleteId)?.name}</strong> will be permanently removed. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+              onClick={() => deleteServerMutation.mutate(deleteId!)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
